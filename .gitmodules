@@ -1,0 +1,6 @@
+[submodule "csiesheep-perspective"]
+	path = csiesheep-perspective
+	url = https://github.com/csiesheep/csiesheep-perspective.git
+[submodule "nuwa-skill"]
+	path = nuwa-skill
+	url = https://github.com/alchaincyf/nuwa-skill.git
