@@ -652,16 +652,19 @@ owner 的工作樹被改掉而沒有任何通知。開之前三個前提:
    判準:harness 的 `SPEC` 常數可以逐條從這裡抄。抄不出數字的機制,還不能派工。
 2. **`/agent-team-delivery init <repo>`**:放進 `TEAM.md`、`tools/orch.sh`、`tools/serve.py`、`tests/`。
    然後 **owner 填所有權表**——只有一個人也要填(寫「暫時全部 BE」也行),每個檔案一列。
+   起手的 session 可以起草、由 owner 逐列確認:**確認過的草稿等於 owner 填的**(initialize_a_game 就這樣做),
+   沒確認過的列不算。
    判準:`orch wt smoke HEAD && orch rm smoke` 走得通;所有權表沒有空格。子 agent **不會載入 skill**,
    peer 要遵守的規矩只能在 repo 裡。
 3. **第一條 guard 是產品的動詞**(`[product-verb]`):第 0 組常數對照,第 1 組「動詞停擺會紅」,門檻鬆、抓崩塌。
    然後**讓它紅一次**:`orch falsify` → `orch serve` → `?json=1` 看它紅、看它印什麼 → `orch restore` → `orch clean`。
-   判準:harness 綠,而且 owner 親眼看過它紅。
+   判準:harness 綠,而且 owner 親眼看過它紅(把紅的那一行、或頁面截圖交到 owner 面前,也算)。
 4. **commit。** 到這裡有:數字、契約、機械、一條紅過的 guard。**沒有 harness 之前不要派工**——派了也驗不了。
 
 ### Phase 1:開 orchestrator,一個 peer 走完整圈
 
-5. **開 orchestrator session**(標題「<專案> orchestrator」)。cwd **必須**是這個 repo 的主 checkout——子 agent 的
+5. **開 orchestrator session**(標題「<專案> orchestrator」)。cwd **必須**在這個 repo 裡(主 checkout,或它的一個
+   worktree;桌面 app 用 task chip 開的 session 就是後者)——子 agent 的
    worktree 是從主 session 的工作目錄開的(§十三),開在 vault 裡 peer 拿到的就是 vault。它在主 checkout **只讀**
    (`git fetch`、`gh`、開 worktree),所有改動在 `_wt/` 與子 agent 自己的 worktree。開場:
    > 你是這個專案的 orchestrator,照 agent-team-delivery skill 和 repo 的 TEAM.md 做。目標:__。優先序:__。
@@ -694,7 +697,9 @@ owner 的工作樹被改掉而沒有任何通知。開之前三個前提:
 2. `.gitignore` 加 `__MARKER_ORCH.txt`、`__orch_*` 與 `.claude/worktrees/`(子 agent 的 worktree 開在那裡,§十三)(已有就不重複)。
 3. `bash tools/orch.sh` 印得出用法、`bash tools/orch.sh wt smoke HEAD && bash tools/orch.sh rm smoke` 走得通,才算裝好。
    `~/.claude/agents/` 裡要有 §十三 的六個 agent;沒有就跑 `bash ~/.claude/skills/setup/install.sh`。Agent 工具的清單裡看不到它們時,再請 owner 重開 session。
-4. 停在這裡:**所有權表要 owner 填,commit 要 owner 下**。把「還缺什麼」列給 owner,不要替他填。
+4. 停在這裡:**所有權表與 commit 是 owner 的決定**。owner 已經逐列確認過草稿(例如 initialize_a_game 的第一次
+   go)→ 照確認的內容寫入並 commit,commit message 記「所有權表 owner 確認,<日期>」;沒有確認 → 把「還缺什麼」
+   列給 owner,不要替他填。
 
 ---
 
