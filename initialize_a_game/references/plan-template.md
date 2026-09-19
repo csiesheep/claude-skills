@@ -74,6 +74,8 @@ Phase 0 proposal; the owner confirms it with the first go.
 - First guard: group 0 copies … from the rulebook note; group 1 checks that a
   game can be set up and every seat has a legal move; made red once by ….
 - Placeholder deploy: yes / no.
+- Deploy rule: the orchestrator deploys after every land until M5 (pages
+  `noindex`); from M5, only on the owner's go.
 - Orchestrator's first goal: M1 engine; priorities: ….
 
 ## Milestones

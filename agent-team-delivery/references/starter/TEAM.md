@@ -9,8 +9,8 @@
 
 | 角色 | 做 | 絕不做 |
 |---|---|---|
-| **orchestrator** | 定優先序、開 issue、派工、**獨立驗證**、merge & push main、對 owner 報告 | 寫產品程式碼(寫了就是自己驗自己) |
-| **peer**(FE / BE / artist / writer) | 在自己的分支與 worktree 實作、自測、交分支 | merge / push main;解不是自己造成的衝突;問 owner |
+| **orchestrator** | 定優先序、開 issue、派工、**獨立驗證**、merge & push main、照「部署」一節部署、對 owner 報告 | 寫產品程式碼(寫了就是自己驗自己) |
+| **peer**(FE / BE / artist / writer) | 在自己的分支與 worktree 實作、自測、交分支 | merge / push main;部署;解不是自己造成的衝突;問 owner |
 
 ## 所有權
 
@@ -68,6 +68,16 @@
 5. A/B:同探針、同種子,只換 build
 6. `orch clean` → merge 驗過的 SHA → 檢查父節點 → `git push origin HEAD:main`
 7. 沒通過**退回 peer,不開新 issue**。判準:「還沒做完」退回;「做完才發現方向錯」才是 owner 的
+
+## 部署
+
+> 填成真的,owner 確認後才生效。改這一節要 owner 裁決。
+
+- **誰**:orchestrator。peer 絕不部署。
+- **什麼時候**:`<例:上線前(頁面 noindex)每次 land 之後;上線後只在 owner 說 go 時>`
+- **指令**:`<部署指令>`
+- **怎麼做**:land 哪個 SHA 就部署哪個 SHA,從那個 SHA 的乾淨 worktree 跑(需要時先裝相依);部署後逐位元組
+  比對線上檔案,比對過了才在 issue 上寫「已部署 <SHA>」。
 
 ## 機械:`tools/orch.sh`
 

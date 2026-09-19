@@ -85,6 +85,8 @@ says otherwise.
   page in the sitemap while it is still `noindex`.
 - Search Console submission is the owner's manual step. AdSense is a
   separate decision.
+- In the same change that drops `noindex`, switch the deploy rule in
+  `TEAM.md` to "only on the owner's go": from then on a land is not a ship.
 
 ## Licensing position (not legal advice)
 

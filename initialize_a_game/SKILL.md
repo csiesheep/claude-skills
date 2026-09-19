@@ -132,6 +132,9 @@ End with one message containing:
     what group 1 checks (the product verb: a game can be set up and every
     seat has a legal move), and how you will break it once to show it red;
   - the placeholder deploy at `games.csiesheep.com/<slug>/` (it goes live);
+  - the deploy rule for `TEAM.md`: until M5, while the pages are `noindex`,
+    the orchestrator deploys and byte-checks after every land; from M5 on,
+    only on the owner's go;
   - the orchestrator's first goal (normally M1) and its priorities.
 
 Then wait. One "go" confirms all of it. If the owner edits something, apply
@@ -149,8 +152,10 @@ sit in the vault: run repo commands as `cd <repo> && …` in one call.
    `tools/serve.py`, the starter harness, `.gitignore`. If the six team
    agents are not offered by the Agent tool, run
    `bash ~/.claude/skills/setup/install.sh`.
-3. **Ownership**: write the confirmed table into `TEAM.md` exactly as
-   confirmed. A row the owner did not confirm stays out; ask about it.
+3. **Ownership and deploy rule**: write the confirmed table and the
+   confirmed deploy rule (command `npx wrangler deploy`) into `TEAM.md`
+   exactly as confirmed. A row the owner did not confirm stays out; ask
+   about it.
 4. **First guard**: write the thinnest engine slice that makes the product
    verb exist (setup and the legal moves of one turn, nothing more). Group
    0's constants are copied from the rulebook note, never read from the
