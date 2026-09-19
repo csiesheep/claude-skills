@@ -693,7 +693,7 @@ owner 的工作樹被改掉而沒有任何通知。開之前三個前提:
    **已存在的檔案不覆蓋**,列出來讓 owner 決定。
 2. `.gitignore` 加 `__MARKER_ORCH.txt`、`__orch_*` 與 `.claude/worktrees/`(子 agent 的 worktree 開在那裡,§十三)(已有就不重複)。
 3. `bash tools/orch.sh` 印得出用法、`bash tools/orch.sh wt smoke HEAD && bash tools/orch.sh rm smoke` 走得通,才算裝好。
-   `~/.claude/agents/` 裡要有 §十三 的六個 agent;沒有就從 `references/agents/` 複製。Agent 工具的清單裡看不到它們時,再請 owner 重開 session。
+   `~/.claude/agents/` 裡要有 §十三 的六個 agent;沒有就跑 `bash ~/.claude/skills/setup/install.sh`。Agent 工具的清單裡看不到它們時,再請 owner 重開 session。
 4. 停在這裡:**所有權表要 owner 填,commit 要 owner 下**。把「還缺什麼」列給 owner,不要替他填。
 
 ---
@@ -711,11 +711,14 @@ owner 的工作樹被改掉而沒有任何通知。開之前三個前提:
 工作目錄開的(`.claude/worktrees/<name>/`,分支 `worktree-<name>`,從預設分支長出來)。開在 obsidian
 vault 或 scratch 資料夾裡,peer 拿到的就是那裡的 worktree。
 
-「在有 `TEAM.md` 的 repo 裡做實作就派工」由使用者層級的 `~/.claude/CLAUDE.md` 設成預設,不再靠觸發詞。
+「在有 `TEAM.md` 的 repo 裡做實作就派工」由使用者層級的 `~/.claude/CLAUDE.md` 設成預設(原稿在本 repo 的
+`setup/CLAUDE.md`),不再靠觸發詞。
 
 ### 派給誰:agent 檔
 
-定義在 `references/agents/`,安裝時複製到 `~/.claude/agents/`,改的時候兩邊一起改。文件說第一次建立那個
+定義在 `references/agents/`,用 repo 根目錄的 `bash setup/install.sh` 裝到 `~/.claude/agents/`(連同
+`setup/CLAUDE.md` → `~/.claude/CLAUDE.md`)。改 repo 裡那一份,再跑一次 install;本機被改過的檔案它只印 diff、
+不覆蓋。新電腦的步驟在 `setup/README.md`。文件說第一次建立那個
 資料夾要重開 session 才會載入;2026-09-18 實測沒重開,幾秒內就出現在 Agent 工具的清單裡。清單裡看不到才重開。
 
 每一個都寫死了模型、effort、`isolation: worktree`(cwd 就是它自己的 worktree,碰不到主 checkout),
