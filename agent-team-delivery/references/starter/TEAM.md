@@ -81,8 +81,9 @@ orch restore                            還原並驗證真的乾淨
 orch clean                              land 之前跑:樹上不可以有 FALSIFY
 ```
 
-慣例:工作樹都在 `../_wt/`;每個工作樹有 `__MARKER_ORCH.txt`(name + SHA);harness 讀 `tests/index.html?json=1`。
-`.gitignore` 加 `__MARKER_ORCH.txt` 與 `__orch_*`。建議 alias:`alias orch='bash tools/orch.sh'`。
+慣例:驗證用的工作樹在 `../_wt/`;peer(子 agent)的工作樹由 Claude Code 開在 `.claude/worktrees/<name>/`,
+cwd 就是它。每個 `_wt/` 工作樹有 `__MARKER_ORCH.txt`(name + SHA);harness 讀 `tests/index.html?json=1`。
+`.gitignore` 加 `__MARKER_ORCH.txt`、`__orch_*` 與 `.claude/worktrees/`。建議 alias:`alias orch='bash tools/orch.sh'`。
 ⚠ `orch rm` 之前先離開那個目錄——cwd 在裡面時 Windows 刪不掉。
 
 ## 預算

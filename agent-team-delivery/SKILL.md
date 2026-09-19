@@ -2,7 +2,7 @@
 name: agent-team-delivery
 description: |
   多個 Claude session 當團隊:orchestrator 定優先序、開 issue、派工、獨立驗證後才 land;peer(FE/BE/writer…)各在自己的 worktree 實作。重點是「驗證怎麼做才算數」與「儀器自己會騙人」的失敗目錄。
-  觸發:「派給 FE / BE」「幫我驗這個分支」「可以 land 嗎」「多開幾個 agent」「orchestrator」「新專案起手 / init」;"dispatch to frontend/backend", "verify before landing", "multi-agent workflow".
+  觸發:「派給 FE / BE」「幫我驗這個分支」「可以 land 嗎」「多開幾個 agent」「開子 agent」「你當 orchestrator」「orchestrator」「新專案起手 / init」;"dispatch to frontend/backend", "verify before landing", "multi-agent workflow", "act as orchestrator", "spawn subagents". 有 TEAM.md 的 repo 裡做實作時,使用者層級的 CLAUDE.md 會要求先載入本 skill。
 ---
 
 # 團隊制交付 · Orchestrator + Peers
@@ -549,6 +549,7 @@ $1.86,我自己量出 $2.09,差 11%——已經準備把它當缺陷寫進 issue
 → **三欄授權**(不必問 / 先問我 / 不要問 owner)寫在**第一份** brief,事後補是 per-peer 的
 → 平行動同一張資料表時,要求 peer 先列出它要用的**所有**新 id(每張有 id 的表都是一個命名空間)
 → peer 之間沒有通道,需要另一個 peer 的決定由你轉;派完去對方 transcript 搜自己的字串確認送到
+→ 派給角色的 agent(`peer-be` / `peer-fe` / `peer-writer` / `peer-artist` / `peer-chore`),模型跟著角色走;退回用 `SendMessage` 接同一個 agent(§十三)
 
 **交付**:SHA + base / 數字 / 我讓什麼紅過 / 我碰了誰的檔案 / 我沒驗到什麼
 → 回程製造痕跡(issue 留言 / push / PR),不要要求宣告;放哨兵把痕跡變成叫醒你的事件
@@ -660,8 +661,9 @@ owner 的工作樹被改掉而沒有任何通知。開之前三個前提:
 
 ### Phase 1:開 orchestrator,一個 peer 走完整圈
 
-5. **開 orchestrator session**(標題「<專案> orchestrator」)。cwd 可以是主 checkout,但它在那裡**只讀**
-   (`git fetch`、`gh`、開 worktree),所有改動在 `_wt/`。開場:
+5. **開 orchestrator session**(標題「<專案> orchestrator」)。cwd **必須**是這個 repo 的主 checkout——子 agent 的
+   worktree 是從主 session 的工作目錄開的(§十三),開在 vault 裡 peer 拿到的就是 vault。它在主 checkout **只讀**
+   (`git fetch`、`gh`、開 worktree),所有改動在 `_wt/` 與子 agent 自己的 worktree。開場:
    > 你是這個專案的 orchestrator,照 agent-team-delivery skill 和 repo 的 TEAM.md 做。目標:__。優先序:__。
    > 你開 issue、寫 brief、派子 agent、獨立驗證、land;你不寫產品程式碼。要 owner 裁決的事在 issue 留言標
    > 「要 owner 裁決」,我在 issue 上回。先做一張 issue、走完派 → 交付 → 驗 → land,再跟我報告。
@@ -689,7 +691,69 @@ owner 的工作樹被改掉而沒有任何通知。開之前三個前提:
 
 1. 把 `references/starter/` 複製進去:`TEAM.md`、`tools/orch.sh`、`tools/serve.py`、`tests/harness.js`、`tests/index.html`。
    **已存在的檔案不覆蓋**,列出來讓 owner 決定。
-2. `.gitignore` 加 `__MARKER_ORCH.txt` 與 `__orch_*`(已有就不重複)。
+2. `.gitignore` 加 `__MARKER_ORCH.txt`、`__orch_*` 與 `.claude/worktrees/`(子 agent 的 worktree 開在那裡,§十三)(已有就不重複)。
 3. `bash tools/orch.sh` 印得出用法、`bash tools/orch.sh wt smoke HEAD && bash tools/orch.sh rm smoke` 走得通,才算裝好。
+   `~/.claude/agents/` 裡要有 §十三 的六個 agent;沒有就從 `references/agents/` 複製,並告訴 owner 要重開 session 才會載入。
 4. 停在這裡:**所有權表要 owner 填,commit 要 owner 下**。把「還缺什麼」列給 owner,不要替他填。
+
+---
+
+## 十三、派子 agent 的機械:角色 → agent → 模型
+
+> 草稿(2026-09-18)。來自 zongheng:一個專案從起手的 session 一路寫到上線,orchestrator 從沒出現——
+> 沒有人說出觸發詞,起手的 skill 停在「等 owner 說 go」之後就沒有下文。所有程式碼都是同一個 session
+> 寫、同一個 session 驗的(§一的「自己驗自己」)。這一節補三件事:誰來派、派給誰、用哪個模型。
+> 還沒實戰過,踩到反例就改。
+
+### 誰來派
+
+主 session 就是 orchestrator,**而且它必須開在遊戲的 repo 裡**:子 agent 的 worktree 是從主 session 的
+工作目錄開的(`.claude/worktrees/<name>/`,分支 `worktree-<name>`,從預設分支長出來)。開在 obsidian
+vault 或 scratch 資料夾裡,peer 拿到的就是那裡的 worktree。
+
+「在有 `TEAM.md` 的 repo 裡做實作就派工」由使用者層級的 `~/.claude/CLAUDE.md` 設成預設,不再靠觸發詞。
+
+### 派給誰:agent 檔
+
+定義在 `references/agents/`,安裝時複製到 `~/.claude/agents/`,改的時候兩邊一起改。**第一次建立那個
+資料夾要重開 session 才會載入**;之後的修改幾秒內生效。
+
+每一個都寫死了模型、effort、`isolation: worktree`(cwd 就是它自己的 worktree,碰不到主 checkout),
+以及 `omitClaudeMd: true`:peer 的規矩只在 `TEAM.md` 和 brief,給 orchestrator 的 CLAUDE.md
+(「你不寫產品程式碼」)不能混進 peer 的 context。
+
+| 角色 | agent | 模型 | effort | 為什麼 |
+|---|---|---|---|---|
+| orchestrator | 主 session | Opus 5;判斷最重的輪次用 Fable 5.1 | owner 定 | 寫 brief、驗證、land;活得最久,讀判決不讀全文 |
+| BE | `peer-be` | opus | high | 引擎、規則、bot、伺服器:錯了看不出來,代價最高 |
+| FE | `peer-fe` | sonnet | medium | 頁面與樣式:反覆改、用眼睛驗 |
+| writer | `peer-writer` | sonnet | medium | 牌文、規則書、兩種語言的字串 |
+| artist | `peer-artist` | sonnet | medium | 寫 prompt、跑 ComfyUI、交 contact sheet |
+| 驗證跑腿 | `orch-checker` | sonnet | high | 在指定 SHA 上跑測試與證偽,只回判決 + 數字(§十一第 2 條);只有 Bash / Read / Grep / Glob |
+| 機械活 | `peer-chore` | haiku | low | 規格寫死的轉檔、改名、抽資料 |
+
+沒有指定 `subagent_type` 的子 agent(general-purpose)會繼承主 session 的模型——通常是最貴的那一個。
+
+### 怎麼派
+
+```
+Agent({ subagent_type: "peer-fe", description: "#12 C2 landing",
+        prompt: "<issue 連結 + brief 五塊 + 三欄授權 + 交付格式 + 分支名>" })
+```
+
+- 模型跟著 agent 走。**只有 brief 寫得出理由時才加 `model` 覆寫**(例:一張 FE issue 其實在改狀態機 → `opus`)。
+- 互不相依的兩條線同時派(子 agent 預設在背景跑,做完會叫醒你);動同一張資料表的,brief 先要 id(§一)。
+- **退回用 `SendMessage` 接同一個 agent**,它的 context 還在;開一個新的 agent 等於開新 issue(四之 4.6)。
+- 同一張 issue 退回兩次還沒過:先問 brief 是不是缺了什麼。brief 沒問題,才換高一級的模型重派
+  (haiku → sonnet → opus → fable),並在 issue 留言寫為什麼換。
+- 驗證的判斷不外包。`orch-checker` 替你讀儀器;看畫面、讀紅的理由、決定 land 的是你。
+- 有改動的 worktree 不會自動刪:land 之後把 `.claude/worktrees/` 底下那一個清掉。
+
+### 判準
+
+- 你正要在主 session 裡 Edit 一個產品檔案——停,那是一張 issue。例外只有 owner 明講要你親手改,
+  而你在 issue 上記下「沒有經過獨立驗證」。
+- 你派出去的 agent 跟你用同一個模型,brief 裡卻沒寫為什麼——多半是忘了 `subagent_type`。
+- peer 的 worktree 出現在 vault 或別的 repo 底下——主 session 開錯地方了。
+- 你把 peer 的 transcript 讀進來了——你要的是五行 handover 和 SHA。
 
