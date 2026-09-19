@@ -60,8 +60,25 @@ Mockup link. Phone-first.
 Approach; levels; the harness (`node tests/sim.js <games> <n or 0> …`);
 target win rates and what "feels human" means for this game.
 
+## Team (agent-team-delivery)
+Phase 0 proposal; the owner confirms it with the first go.
+
+| Files | Role |
+|---|---|
+| `public/shared/engine.js`, `public/shared/bots.js`, `src/`, `tests/sim.js` | BE |
+| `public/*.html`, `public/app.js`, `public/style.css` | FE |
+| `public/i18n/*`, the rules page text, `README.md` | writer |
+| `public/art/` and the prompts that made it | artist |
+| `tests/` (except `sim.js`), `tools/`, `TEAM.md` | orchestrator |
+
+- First guard: group 0 copies … from the rulebook note; group 1 checks that a
+  game can be set up and every seat has a legal move; made red once by ….
+- Placeholder deploy: yes / no.
+- Orchestrator's first goal: M1 engine; priorities: ….
+
 ## Milestones
-- M0 Scaffold: router, placeholder, deploy, routes verified.
+- M0 Scaffold and team setup (Phase 0): router, placeholder deployed and
+  verified, `TEAM.md`, a first guard seen red. M1 on are orchestrator issues.
 - M1 Engine + tests (incl. a fuzz test over legal moves).
 - M2 Bots + harness, win-rate table.
 - M3 Solo UI, bot talk, i18n, rules page.
@@ -75,5 +92,6 @@ target win rates and what "feels human" means for this game.
 - **<YYYY-MM-DD>** — …
 
 ## Next steps
-- [ ] Owner confirms the plan and the open questions above.
-- [ ] M0 …
+- [ ] Owner confirms the plan, the open questions and the Phase 0 proposal (first go).
+- [ ] Phase 0: placeholder, `TEAM.md`, first guard seen red.
+- [ ] Owner's second go: the orchestrator session starts M1.

@@ -1,17 +1,20 @@
 ---
 name: initialize_a_game
 description: |
-  Kick off a new browser board game for games.csiesheep.com/<game>/ from a board game's name: find the rulebook, settle the name and licensing, write the implementation plan, mock up the pages, create the Obsidian plan note and the GitHub repo — then STOP and wait for the owner's confirmation before implementing anything.
+  Kick off a new browser board game for games.csiesheep.com/<game>/ from a board game's name: find the rulebook, settle the name and licensing, write the implementation plan, mock up the pages, create the Obsidian plan note and the GitHub repo, then STOP for the owner's go. On the go, set the repo up for the team (Phase 0 of agent-team-delivery: placeholder deploy, TEAM.md with the ownership the owner confirmed, a first guard shown red); STOP again; on the second go, open the orchestrator session that builds the game (Phase 1). This skill writes no game code beyond Phase 0's thinnest slice.
   Trigger on "/initialize_a_game <name>", "initialize a game", "start a new game project", "kick off <board game> web version". Not for games that already have a repo.
 ---
 
 # Initialize a game
 
-One command turns a board game's name into a project ready to build:
-rulebook → name/licensing → plan → mockups → vault note → repo → **wait**.
+One command turns a board game's name into a project a team can build:
+rulebook → name/licensing → plan → mockups → vault note → repo → **go** →
+team setup (Phase 0) → **go** → orchestrator session (Phase 1).
 
-The output of this skill is a decision package, not code. Everything after
-the owner says "go" belongs to the plan's milestones, not to this skill.
+The output is a decision package and a repo that can be verified, not the
+game. There are two stops, each one message the owner can answer with "go"
+(or with edits): everything the owner has to decide is in that message. The
+milestones from M1 on are issues run by the orchestrator, not by this skill.
 
 ## Inputs
 
@@ -111,24 +114,88 @@ Scaffold from the newest sibling repo (`tiandihui` today) rather than from
 scratch: copy `wrangler.jsonc`, `package.json`, `src/index.js` (prefix
 router), `public/` skeleton, `tests/` layout; strip the old game's engine,
 bots, strings and art. Set the git identity per conventions, commit the
-scaffold, push. Do not deploy yet unless the owner asks for a placeholder
-at the URL (M0 is a separate step).
+scaffold, push. Do not deploy yet: the placeholder is part of Phase 0
+(step 7), after the owner's go.
 
-### 6. Stop
+### 6. First stop: the decision package and the Phase 0 proposal
 
-End with one message containing: the recommended name, the rulebook note
-link, the plan note link, the mockup link, the repo link, and the open
-questions as a short numbered list with your recommendation for each.
-Then wait. Implementation begins only when the owner confirms.
+End with one message containing:
+- the recommended name, the rulebook note link, the plan note link, the
+  mockup link, the repo link;
+- the open questions as a short numbered list with your recommendation for
+  each;
+- **the Phase 0 proposal**, also written into the plan's "Team" section:
+  - the ownership table for `TEAM.md`: every file or folder of the scaffold
+    and of the planned architecture, one row each, with its role (BE, FE,
+    writer, artist, orchestrator);
+  - the first guard: which numbers group 0 copies from the rulebook note,
+    what group 1 checks (the product verb: a game can be set up and every
+    seat has a legal move), and how you will break it once to show it red;
+  - the placeholder deploy at `games.csiesheep.com/<slug>/` (it goes live);
+  - the orchestrator's first goal (normally M1) and its priorities.
 
-When the owner says go, implementation runs through `agent-team-delivery`
-(§十二). Phase 0 can happen in this session: the scaffold, the harness, and one
-guard that has gone red once. Then run `/agent-team-delivery init <repo>`, and
-from there on the work is issues dispatched to subagents by an orchestrator
-session opened in the repo itself (§十三 has the agents and their models).
-Do not keep writing product code in the kickoff session past Phase 0.
-Zongheng (2026-09-18) went from kickoff to a deployed game in one session
-and never had an independent check.
+Then wait. One "go" confirms all of it. If the owner edits something, apply
+the edit and say what changed before starting. Nothing in steps 7 to 9
+happens without this go.
+
+### 7. Phase 0: make verification exist (on the first go)
+
+`agent-team-delivery` §十二, Phase 0, done by this session. The session may
+sit in the vault: run repo commands as `cd <repo> && …` in one call.
+
+1. **Placeholder (M0)**: deploy, then byte-verify the live files per
+   conventions.
+2. **`/agent-team-delivery init <repo>`**: `TEAM.md`, `tools/orch.sh`,
+   `tools/serve.py`, the starter harness, `.gitignore`. If the six team
+   agents are not offered by the Agent tool, run
+   `bash ~/.claude/skills/setup/install.sh`.
+3. **Ownership**: write the confirmed table into `TEAM.md` exactly as
+   confirmed. A row the owner did not confirm stays out; ask about it.
+4. **First guard**: write the thinnest engine slice that makes the product
+   verb exist (setup and the legal moves of one turn, nothing more). Group
+   0's constants are copied from the rulebook note, never read from the
+   product. Make it go red once: `orch falsify` → run → keep the exact line
+   the guard printed → `orch restore` → `orch clean`; then run it green.
+5. **Commit and push** the repo (the message says the ownership table was
+   confirmed by the owner, with the date); update the plan's Decisions and
+   Next steps; commit and push the vault.
+
+### 8. Second stop: show the red, ask to start the team
+
+One message: the live URL and that its bytes match the repo; the `TEAM.md`
+link; the harness numbers, green; **what you broke and the exact line the
+guard printed when it went red** (a screenshot if the guard is a page). This
+is the owner seeing it red, the gate before any work is handed out. Say
+plainly that the Phase 0 slice was written and checked by this session only,
+so it is the least-verified code in the repo. Ask for the go to start the
+orchestrator with the confirmed goal and priorities.
+
+### 9. Phase 1: start the orchestrator (on the second go)
+
+The orchestrator is a new session opened in the repo, not this one: this
+session's context is full of research, and subagent worktrees are cut from
+the orchestrator's working folder.
+
+- If the host can open a session for the owner (the Claude desktop app: a
+  task chip via `spawn_task` with `cwd` set to the repo path, titled "Run the
+  <slug> orchestrator"), create it with the opening below as its prompt. The
+  owner's click starts it.
+- Otherwise give the owner the folder and the opening, to paste into a new
+  session started there.
+
+The opening, with the blanks filled from the confirmed proposal:
+
+    你是 <slug> 的 orchestrator,照 agent-team-delivery skill 和 repo 的 TEAM.md 做。
+    目標:<goal>。優先序:<priorities>。
+    你開 issue、寫 brief、派子 agent(§十三)、獨立驗證、land;你不寫產品程式碼。
+    要 owner 裁決的事在 issue 留言標「要 owner 裁決」,我在 issue 上回。
+    Phase 0 的最小引擎切片是起手的 session 寫的,沒有經過獨立驗證(§一):在那裡找到缺陷,先假設是它錯。
+    先做一張 issue,走完派 → 交付 → 驗 → land,再跟我報告。
+
+This session ends here: no more product code, nothing dispatched from it.
+Tick the plan's Next steps and commit the vault. Zongheng (2026-09-18)
+skipped all of this and went from kickoff to a deployed game in one session
+with no independent check; steps 6 to 9 exist so that does not happen again.
 
 ## Conventions the owner expects in replies
 
