@@ -206,6 +206,13 @@ baseline = 快照(origin/main、各分支 SHA、各 issue 留言數、issue 狀�
 判準:**這個訊號是 peer 「刻意發出」的,還是它工作時「順手留下」的?** 只有
 刻意發出的才算交付。
 
+**哨兵從派工的那一刻就放,不是等到你覺得它快交了。** peer 在做到一半就會提問:
+驗收的洞、草稿沒寫到的牌、一句兩種讀法。真實案例(president_2000 #55):BE 開工後
+在 issue 留了三則「問 orchestrator」,其中兩則是驗收本身的錯,而我沒放哨兵,一則都沒
+看到;它只好照暫定的讀法做完,兩個洞到交付時才一起回來。之後每張單派出去就同時
+放一個只盯那張 issue 留言的哨兵,下一張(#58)的提問在 90 秒內就被接住。
+brief 也要寫明:「驗收哪一條看起來不對,**一發現就留言,不要等交付**」。
+
 ## 四、驗證:orchestrator 的核心工作
 
 ### 4.1 從乾淨的、抽離的 worktree 驗
@@ -283,6 +290,22 @@ eventRng      2567497118 → 104095635   不變
 harness 由 orchestrator 所有。peer 可以跑,但不編輯——某一列錯了要回報,
 由你修。
 
+**三態的閘門在 land 之後要翻過來。** 「尚未實作」只在功能還不存在時才對;一旦
+land,同一個條件再出現就是**退步**,要報失敗。不翻的話,有人把新局改回舊版本,
+整段驗收只會安靜地變回「尚未實作」,exit 0。land 之後的第一個 Harness commit 就做
+這件事,並證偽一次(把功能拿掉,看它從 0/0/N 變成 0/N/0、exit 1)。
+
+**驗收先在探針上看紅也看綠,再交出去。** 開一棵抽離的探針樹,只做最少的改動
+(例如只把新局切到新版本):每一條要紅在自己的理由上;再補一個「做對了」的探針,
+看綠的那一列印得對。產品在探針上會當掉的話,先把當掉的地方補掉再看,否則當掉
+會蓋住後面每一條自己的判斷。探針不 commit。
+
+**換版本之前,先掃驗收裡寫死舊版本的地方。** 每次切換(v0.5 → v0.6 → v0.7),都有
+上一版寫死的測試在「owner 要的那個切換」上反咬:常數(連的候選人牌 3 CP)、字樣
+(候選人板上的「袋中 N」)、閘門只認一個版本字串。派工前 grep 舊版本的名字、常數
+和字樣;守「這一版與建在它上面的版本」的,寫成清單(`ON = ["v0.6", "v0.7"]`)。
+見 [pinned-to-the-old-version]。
+
 ### 4.6 驗收沒過就退回,不要開一張新 issue
 
 流程只有一條:
@@ -356,6 +379,8 @@ harness 由 orchestrator 所有。peer 可以跑,但不編輯——某一列錯�
 - `[rounding-at-threshold]` 「≥ 門檻」的比較之前不准格式化;問儀器解析度跟門檻差幾個數量級;分母要跟兩端一起固定
 - `[pipe-eats-exit-code]` `|` 回的是最後一段的狀態;「還原」不能是 `&&` 鏈上的一步,要寫成下一步的守衛;`grep -c` 為 0 時 exit 1
 - `[shared-browser-tab]` 瀏覽器 pane 所有 agent 共用;有 peer 在跑就開專屬分頁帶 tabId,讀結果連 `location.href` 一起印
+- `[headless-min-width]` 只設 `--window-size=390` 的 headless 不是手機:視窗有最小寬度,截圖只切了左邊;手機一律用 CDP 模擬
+- `[dead-dev-server]` 伺服器是你的還不夠,要證明它還活著:切版本、移 worktree 會讓 dev server 卡死,量之前 `curl -m 5`
 
 **假綠——guard 本身是死的**
 
@@ -371,6 +396,9 @@ harness 由 orchestrator 所有。peer 可以跑,但不編輯——某一列錯�
 - `[product-verb]` 這個產品的動詞是什麼?哪條檢查會因為它停擺而紅?答不出就先寫那條,門檻要鬆
 - `[dead-branch-fix]` 寫下條件先問「今天有幾筆資料讓它成立?」0 = 永不執行的分支,而測試不會告訴你
 - `[vacuous-consistency]` 「A 跟 B 一致」在兩邊都空時恆真——A 先對獨立來源的絕對值;認本尊別用被檢查的欄位
+- `[shell-ate-the-escape]` 經 heredoc / `node -e` 產生的 guard 少了反斜線:`\b` 變 backspace,正規式一個字都抓不到;用檔案工具寫,掃控制字元
+- `[random-walk-misses-rare-state]` 隨機走的 guard 走不到罕見狀態;數那個分支被執行幾次,0 就補人為設定的局面
+- `[pinned-to-the-old-version]` 換版前先掃驗收裡寫死舊版本的常數、字樣、閘門;守一版的寫成「這版與建在它上面的」清單
 
 **取樣與數字**
 
@@ -379,6 +407,7 @@ harness 由 orchestrator 所有。peer 可以跑,但不編輯——某一列錯�
 - `[grid-count-not-absolute]` 取樣網格數出來的計數,報出去換成比例或把網格寫在同一句;粗網格的 0 不是「不存在」
 - `[asymmetric-samples]` 比較兩個 arm 之前先把樣本數寫在同一行;鬆的那組若剛好支持你想做的,先補那一組
 - `[wrong-criterion]` 修法是「再改一個本來就好的地方」→ 懷疑判準不是資料;真規則常是連續量;背書要逐項
+- `[compare-to-the-exact-value]` 畫面上的數字跟精確值比,不跟紀錄裡已經捨過的值比——容許 0.5 會放過「捨兩次」
 
 **主張與規格——句子本身騙人**
 
@@ -388,11 +417,13 @@ harness 由 orchestrator 所有。peer 可以跑,但不編輯——某一列錯�
 - `[lesson-not-self-applied]` 教訓寫進 brief 的那一刻,先對自己的檔案跑一次;派工只是轉發,不是處理
 - `[size-not-hit-target]` 尺寸是元素的屬性,可及性是「加上之後畫的所有東西」;斷言中心點上最上層是不是它自己
 - `[no-scroll-not-fits]` 沒捲軸 ≠ 裝得下——被丟掉的溢出分數更好看;斷言「畫了幾個 vs 擁有幾個」;會數數的 guard 不會判斷
+- `[counts-from-their-own-line]` 從合併的測試輸出讀各段數字,要讀該段自己印的那一行,不是照順序對檔名
 
 **通道與協作**
 
 - `[dispatch-not-delivered]` `success:true` 只是位址解析;先看 `isRunning`,再去對方 transcript 搜自己的字串;確認送達前不要開始等
 - `[diagnosis-outlives-validity]` 修好機制後,把所有「因為它壞」的結論標為待重驗;「安靜」先分「壞了」還是「做完在等」
+- `[question-while-you-wait]` peer 做到一半就會提問;哨兵從派工那一刻放,只盯那張 issue 的留言,不是等它快交了
 
 ---
 
@@ -445,6 +476,13 @@ $1.86,我自己量出 $2.09,差 11%——已經準備把它當缺陷寫進 issue
    git log --format="%H %P" -1 <merge>
    git diff <merge> <被合併的分支> --stat   # 應為空(若對方已含 main)
    ```
+
+2b. **先在本機做出 merge,讓 checker 驗那個 merge 的 SHA,驗過才推。** 在你交出驗收
+   之後、peer 交付之前,main 常常又多了 Harness commit;peer 的分支驗過,不等於
+   「main + 它」驗過。merge 物件在共用的 `.git` 裡,checker 的 worktree 直接
+   `checkout --detach <merge>` 就看得到;驗的、推的、部署的,是同一個 SHA。
+   瀏覽器工具要量的話,讓本機 dev server 跑在 merge 那棵樹上,先逐位元組確認它送的
+   就是那幾個檔。(president_2000 #55–#63 都這樣 land。)
 3. **main 若是生產線,land 就是 ship。** 「這會不會退步?」和「這該不該
    上線?」是兩個問題。
 4. **分支上游陷阱**:`git checkout -b X origin/main` 會讓 X 的上游指向

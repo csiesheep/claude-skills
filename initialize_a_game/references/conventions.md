@@ -1,8 +1,8 @@
 # Conventions for games on games.csiesheep.com
 
 Learned across dice_war, zombie_in_the_pocket, jiangshi_in_the_pocket,
-elevator_inc, betrayal_sound_board and tiandihui. Follow unless the owner
-says otherwise.
+elevator_inc, betrayal_sound_board, tiandihui and president_2000. Follow
+unless the owner says otherwise.
 
 ## Platform
 
@@ -32,6 +32,18 @@ says otherwise.
 - **i18n**: all player-visible strings in `public/i18n/en.js` and
   `public/i18n/zh-Hant.js`; `app.js` carries no prose. Chinese numerals
   helper (`nums`) where the design calls for 一二三.
+- **Rule versions** (president_2000): the engine takes `createGame(seed,
+  { rules })` and stores `st.rules`; new games start on the current
+  version, a saved game keeps its own. The text tests keep a `V0x_ONLY`
+  list of strings only an older version shows (never deleted or changed by
+  a later version) and, per version switch, a check that no other string
+  uses the words that version took out.
+- Text lands and deploys before the code that uses it: a changed string
+  may only use the `{placeholders}` it already had, or the live page shows
+  a raw `{luck}` until the code lands.
+- Card texts are shared by every rule version. Decide at the start whether
+  they are versioned; if not, a version switch shows games saved on the
+  old version the new wording (president_2000 accepted that).
 - Fonts from Google Fonts only; the hub loads only faces a tile uses.
 
 ## Repo
@@ -54,6 +66,15 @@ says otherwise.
 - After deploy, byte-compare live files to the repo with sha1 and
   cache-busting retries (`?v=$RANDOM`); the edge briefly serves stale
   files. `/<slug>/index.html` redirects — compare `/<slug>/` instead.
+  One differing file right after a deploy is usually the edge: run the
+  whole compare again and compare the files the land changed on their own
+  before calling it a defect (president_2000 #58: 125/1, then 126/0).
+- `wrangler dev` serving a tree you check other commits out in, or one next
+  to worktrees you remove, can fail with "Could not resolve …" and then
+  hang without answering. `curl -s -m 5` the page before any measurement;
+  restart the server if it does not answer.
+- `workerd` can be relaunched by its parent: stop the topmost `wrangler`
+  `node` process by PID, then check the port is free.
 - Local: `npx wrangler dev --port 8788` in the background; stop with
   PowerShell `Get-NetTCPConnection -LocalPort 8788` → `Stop-Process`, and
   kill leftover `workerd`. `workerd` sometimes dies with 0xC0000005 on
@@ -65,6 +86,28 @@ says otherwise.
 - Browser pane: `file://` is refused; use a server. Coordinates are
   unreliable — click by `ref` or drive with `javascript_tool`. Hidden
   overlays keep their DOM (`#btnPeek` exists while hidden).
+
+## Shell and browser on this machine
+
+- Bash heredocs here, even quoted (`<<'EOF'`), lose one level of
+  backslash: `\\b` arrives as `\b`, which a JS string turns into U+0008.
+  Write any code that holds backslashes (regexes, escapes) with the file
+  Write/Edit tools, never through a heredoc or `node -e`; after generating
+  code, scan it for control characters. (president_2000: an English
+  forbidden-word guard matched nothing from #56 to #59.)
+- Measuring pages: headless Chrome with a fresh profile per run and
+  `--remote-debugging-port=0` (read the port from `DevToolsActivePort`);
+  phone widths only through CDP `Emulation.setDeviceMetricsOverride`
+  (`--window-size=390` is not a phone: headless has a minimum window width
+  and the screenshot only crops it). A run that times out leaves Chrome
+  behind: stop it by PID (its command line carries the profile name).
+  Never the owner's Chrome, never the desktop app's browser pane (shared
+  tabs, a tab cap).
+- Phone targets: 390×664, an iPhone 14/15 in Safari with its toolbars, is
+  the scored size; print 375×548 (iPhone SE in Safari) as a reading; taps
+  at least 44 px.
+- Scratch output, logs and probe trees never under `C:\Users\sheep\code\`;
+  say so in every agent's brief.
 
 ## Vault
 

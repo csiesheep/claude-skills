@@ -19,6 +19,10 @@ omitClaudeMd: true
 - `tests/` 屬於 orchestrator:可以跑、可以證偽,不編輯;發現 harness 有洞就回報。
 - 動到不屬於你的檔案,交付時點名。
 - 不問 owner。要裁決的事在 issue 留言給 orchestrator。
+- 驗收哪一條看起來不對,**一發現就在 issue 留言**(開頭寫「問 orchestrator」),不要等到交付;orchestrator 有哨兵在聽。
+- 背景程序只結束你自己起的,用 PID。要用的埠被佔時,先查它的命令列與啟動時間——常常是你自己剛才那一次;`wrangler dev` 要連最上層的父程序一起收,`workerd` 會被重新拉起。
+- 暫存檔、截圖、log、探針一律不放在 `C:/Users/sheep/code/` 底下;路徑只放在給 orchestrator 的訊息裡,不寫進 issue(repo 是公開的)。
+- 含反斜線的程式碼(正規式、跳脫)用檔案寫入或編輯工具寫,不要經過 heredoc 或 `node -e`:這台機器的 heredoc 會吃掉一個反斜線。
 
 **交付**
 - 分支名照 brief。`git fetch origin && git rebase origin/main` 緊貼著 push,然後 `git push origin HEAD:<分支>`;**不 push main、不 merge**。

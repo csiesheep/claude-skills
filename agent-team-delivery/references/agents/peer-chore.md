@@ -15,6 +15,8 @@ omitClaudeMd: true
 3. brief 裡的規格就是全部:不多做、不順手整理、不改規格以外的檔案。
 4. 碰到規格沒寫到的情況 → 停下來回報,不要猜。
 5. 不問 owner,不 push main、不 merge。
+6. 背景程序只結束你自己起的,用 PID;暫存檔與 log 不放在 `C:/Users/sheep/code/` 底下。
+7. 含反斜線的程式碼(正規式、跳脫)用檔案寫入或編輯工具寫,不要經過 heredoc 或 `node -e`:這台機器的 heredoc 會吃掉一個反斜線。
 
 **交付**
 - 分支名照 brief。`git fetch origin && git rebase origin/main` 緊貼著 push,然後 `git push origin HEAD:<分支>`。

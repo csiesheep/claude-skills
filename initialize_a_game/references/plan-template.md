@@ -37,6 +37,14 @@ display and body faces; corner and rule style. Link to the design canvas.
 Player counts, setup, turn structure, win conditions, every table.
 Expansions and variants listed as data-driven later work.
 
+## Rule versions
+How the web version's own rules change after play-testing: a draft note
+per change (the owner's words verbatim, the proposals, the simulation
+numbers, the decision), the engine's `createGame(seed, { rules })`, which
+version new games start on, and what a game saved on an older version
+keeps (its rules, its screens; the card texts if they are not versioned).
+A table of versions: date, what changed, simulation numbers, adopted or not.
+
 ## Architecture
 - Worker + prefix router, static assets, one DO per room.
 - `engine.js`: state shape, actions, `view(state, seat)`, RNG.
@@ -56,9 +64,19 @@ Expansions and variants listed as data-driven later work.
 
 Mockup link. Phone-first.
 
+Viewport targets: 390×664 (iPhone Safari with toolbars) scored, 375×548
+(SE) read, 1440×900 desk. Which pages must fit without scrolling (setup,
+lobby, game over), and where the phone layout differs from the desk one
+(for example what a candidate panel shows without a tap).
+
 ## Bots and balance
 Approach; levels; the harness (`node tests/sim.js <games> <n or 0> …`);
 target win rates and what "feels human" means for this game.
+The band the owner reads (each side's win rate, the average margin, any
+game-specific rate such as turnout) and how a rule change is compared:
+every arm on the same seeds, the control arms scored equal to main, the
+bots tuned seat by seat (one seat changed, the others fixed, paired seeds)
+before the numbers go to the owner.
 
 ## Team (agent-team-delivery)
 Phase 0 proposal; the owner confirms it with the first go.

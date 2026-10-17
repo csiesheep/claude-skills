@@ -51,6 +51,13 @@ time before. Match them; the hub expects one shape.
   Tables as markdown tables. Never paste rulebook prose.
 - List what is unclear or contradictory across sources. Those are the
   unknowns the engine tests must pin down.
+- Once play-testing starts, the vault rulebook becomes the web version's
+  own rule source, with its own versions (v0.1, v0.2 …). Every change is
+  a draft note (`<slug> - vX.Y 草稿（…）.md`) holding the owner's words
+  verbatim, the proposals, the simulation numbers and the decision; on
+  adoption the rulebook is rewritten to that version (keep the previous
+  one as a backup). Acceptance tests copy their numbers from it by hand,
+  never from the product. (president_2000 went v0.4 → v0.7 this way.)
 
 ### 2. Name and licensing — decide this BEFORE the repo exists
 
@@ -83,7 +90,12 @@ sibling repos and the hub are built for it. Include:
   later),
 - the bot approach (what the AI must reason about; for hidden-role games a
   posterior over role assignments, for area games a scored search),
-- the balance harness (bot-vs-bot, N games per cell, child processes),
+- the balance harness (bot-vs-bot, N games per cell, child processes):
+  every arm of a comparison runs on the same seeds; a scored check that
+  the control arms equal main game for game, so bot changes made for a new
+  option cannot move the other arms; `tests/sim.js` takes rule options as
+  arguments; the owner reads wins, margin and turnout against a band
+  written in the plan (president_2000: each side 25–42 %, margin ≤ 6),
 - open questions with your recommended answer for each.
 
 Convert relative dates to absolute. Commit the vault with a short message
@@ -103,6 +115,15 @@ Show, do not describe: publish a mockup the owner can look at.
   Qing-era brotherhood, a haunted mortuary), commit to it and show one.
 - Record the chosen tokens (colours, type, semantics of each colour) in
   the plan's "Look" section once picked.
+- Phone artboards are 390×844, but draw the fold at 664 px: that is what
+  an iPhone 14/15 shows in Safari with its toolbars. A page meant to need
+  no scrolling (setup, lobby, game over) is designed to 664. (president_2000's
+  setup page came out 760 / 916 px tall and had to be redone.)
+- Upload the real assets you already have (portraits, card art) to the
+  canvas and use them: grey boxes hide the real proportions.
+- For a UI choice, show three versions side by side, give the trade-offs
+  in the reply and recommend one. The owner usually picks one and then
+  tweaks it; keep the earlier rounds on the canvas, a new round in a new row.
 
 ### 5. Repo
 
@@ -110,10 +131,12 @@ Only after the name is settled:
 ```bash
 gh repo create csiesheep/<slug> --public --description "<one line>"
 ```
-Scaffold from the newest sibling repo (`tiandihui` today) rather than from
-scratch: copy `wrangler.jsonc`, `package.json`, `src/index.js` (prefix
-router), `public/` skeleton, `tests/` layout; strip the old game's engine,
-bots, strings and art. Set the git identity per conventions, commit the
+Scaffold from the newest sibling repo rather than from scratch:
+`president_2000` today (it also carries the rule-version switch, the
+three-state harness, the browser layout tools and the live byte-compare);
+`tiandihui` for a hidden-role game. Copy `wrangler.jsonc`, `package.json`,
+`src/index.js` (prefix router), `public/` skeleton, `tests/` layout and
+`tests/harness.js`; strip the old game's engine, bots, strings and art. Set the git identity per conventions, commit the
 scaffold, push. Do not deploy yet: the placeholder is part of Phase 0
 (step 7), after the owner's go.
 
@@ -161,6 +184,17 @@ sit in the vault: run repo commands as `cd <repo> && …` in one call.
    0's constants are copied from the rulebook note, never read from the
    product. Make it go red once: `orch falsify` → run → keep the exact line
    the guard printed → `orch restore` → `orch clean`; then run it green.
+   - Build the rule version in from day one: `createGame(seed, { rules })`,
+     `st.rules` kept in every saved game, new games on the current version,
+     old saves keeping theirs. A test that guards a version names the
+     versions it holds for (`ON = ["v0.6", "v0.7"]`, a version and the ones
+     built on it), never one literal: every version switch in president_2000
+     broke tests pinned to the version before.
+   - Put one browser layout tool in the starter harness: headless Chrome
+     over CDP with `Emulation.setDeviceMetricsOverride` at 390×664 (phone)
+     and 1440×900 (desk), measuring boxes, not screenshots alone.
+     `--window-size=390` is not a phone: headless has a minimum window width
+     and the screenshot only crops it.
 5. **Commit and push** the repo (the message says the ownership table was
    confirmed by the owner, with the date); update the plan's Decisions and
    Next steps; commit and push the vault.
