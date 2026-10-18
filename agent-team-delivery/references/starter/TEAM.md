@@ -22,7 +22,7 @@
 | `<畫面、UI、輸入、樣式>` | FE |
 | `<圖、素材、量測頁>` | artist |
 | `<文案、i18n、README>` | writer |
-| `tests/`、`tools/orch.sh`、`tools/serve.py`、`TEAM.md` | orchestrator |
+| `tests/`、`tools/orch.sh`、`tools/serve.py`、`tools/check_public_imports.mjs`、`TEAM.md` | orchestrator |
 
 - 跨界修改**可以**,但交付時要點名,由 orchestrator 轉給檔案主人。最糟的不是衝突,是兩邊安靜地各持一份真相。
 - **資料表要加 id 的**,開工第一則留言先列出這一趟**所有**新 id。同一個檔案裡有幾張表就有幾個命名空間;撞 id 時兩邊的測試都是綠的。
@@ -66,7 +66,10 @@
 3. 凡是給人看的頁面**先打開看**,再跑 harness
 4. **破壞產品讓 guard 紅一次**:`orch falsify` → 看結果 → `orch restore`。一次一個缺陷,讀紅的理由不讀數量
 5. A/B:同探針、同種子,只換 build
-6. `orch clean` → merge 驗過的 SHA → 檢查父節點 → `git push origin HEAD:main`
+6. `orch clean` → merge 驗過的 SHA → 檢查父節點 → `git push origin HEAD:main`。
+   這張 issue 有「land 之前記 TODO」的閘門(版本旗標、STRICT 常數),**在同一次 land 裡翻成嚴格**——
+   不翻,之後退回舊行為時它讀起來仍是「尚未實作」
+6b. 收拾:`orch rm <name>`(驗證與 land 用的 `_wt/`)、刪掉 land 完的 `.claude/worktrees/<agent>`、`git worktree prune`
 7. 沒通過**退回 peer,不開新 issue**。判準:「還沒做完」退回;「做完才發現方向錯」才是 owner 的
 
 ## 部署
@@ -75,7 +78,8 @@
 
 - **誰**:orchestrator。peer 絕不部署。
 - **什麼時候**:`<例:上線前(頁面 noindex)每次 land 之後;上線後只在 owner 說 go 時>`
-- **指令**:`<部署指令>`
+- **指令**:`<部署指令>`。部署會挑檔（白名單、打包、搬到 `public/`）時,上傳之前先跑 `node tools/check_public_imports.mjs <那棵樹>`——
+  測過的樹不是部署的樹;漏一個資料夾,線上整頁的模組就載不起來,而所有驗收都是綠的。
 - **怎麼做**:land 哪個 SHA 就部署哪個 SHA,從那個 SHA 的乾淨 worktree 跑(需要時先裝相依);部署後逐位元組
   比對線上檔案,比對過了才在 issue 上寫「已部署 <SHA>」。
 
@@ -87,12 +91,12 @@ orch rm <name>                          分支留著（那是痕跡）；要刪�
 orch serve <name|dir>                   自挑 port、起 no-cache 伺服器、curl 標記檔證明 origin 是你的
 orch stop <name|dir>
 orch falsify <file> '<sed 含 FALSIFY>'  有殘留 / 檔案不乾淨 / pattern 沒命中 → 拒絕
-orch restore                            還原並驗證真的乾淨
-orch clean                              land 之前跑:樹上不可以有 FALSIFY
+orch restore [name|dir]                 還原並驗證真的乾淨(沒給就是目前所在的工作樹)
+orch clean [name|dir]                   land 之前跑:樹上不可以有 FALSIFY
 ```
 
 慣例:驗證用的工作樹在 `../_wt/`;peer(子 agent)的工作樹由 Claude Code 開在 `.claude/worktrees/<name>/`,
-cwd 就是它。每個 `_wt/` 工作樹有 `__MARKER_ORCH.txt`(name + SHA);harness 讀 `tests/index.html?json=1`。
+cwd 就是它。每個 `_wt/` 工作樹有 `__MARKER_ORCH.txt`(name + 現在的 HEAD,有改動加 `+dirty`;每次 `orch serve` 重寫);harness 讀 `tests/index.html?json=1`。
 `.gitignore` 加 `__MARKER_ORCH.txt`、`__orch_*` 與 `.claude/worktrees/`。建議 alias:`alias orch='bash tools/orch.sh'`。
 ⚠ `orch rm` 之前先離開那個目錄——cwd 在裡面時 Windows 刪不掉。
 
