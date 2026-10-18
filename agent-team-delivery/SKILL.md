@@ -90,6 +90,14 @@ skill 想避免的第一件事。寫探針、寫破壞測試、寫驗證腳本�
    就分出高下,錯誤的實作也會通過,等於沒證明任何事。」
 5. **遇到什麼情況要停下來問我**,而不是自己想辦法繞過。
 
+**brief 裡關於現有程式的每一句話,派出去之前自己跑一次。** peer 會照它寫程式,不會懷疑;
+寫錯了,它會把一個正確的函式換掉。查得到就把數字寫進去(「8 次搬家都差一年」),查不了就寫「我猜」。
+見 [unchecked-brief-claim]。
+
+**owner 的回饋先變成裁決,才變成 brief。** owner 的一句話或一張手機截圖 → 設計文件的一節(逐字引用原話、
+寫主詞與日期)→ 驗收(新要求先記 TODO)→ issue。不要把截圖直接轉給 peer:它拿到的是一個畫面,
+不是判準。owner 常在手機上看——要給他看的東西(截圖、設計稿)存成圖檔送過去,對話裡的 widget 在手機上看不到。
+
 ### 一定要寫進去的一句話
 
 > 如果做不到 X,**回報我,不要自己降規格**。
@@ -153,6 +161,10 @@ skill 想避免的第一件事。寫探針、寫破壞測試、寫驗證腳本�
 **「我沒有驗到的部分」是最有價值的一欄。** 它決定 orchestrator 要親手做
 什麼。真實例子:BE 明講「binding 在 isolate 裡解析、D1 的行為、路由——
 這三件事部署前無法測」,那就正好是 orchestrator 部署後唯一該做的事。
+
+**資料型的交付多一欄:最沒把握的十項。** writer 交史料、出處、對照表時,要它列出最沒把握的十個項目
+(哪一列、為什麼、取了哪個說法)。你抽查從這十項開始,不從第一列開始。出處只能寫真的查到的,
+不編;拿不準的取通說,信心欄只用固定的幾種值(例:史料／學界估計／模型推估)。
 
 ---
 
@@ -292,8 +304,10 @@ harness 由 orchestrator 所有。peer 可以跑,但不編輯——某一列錯�
 
 **三態的閘門在 land 之後要翻過來。** 「尚未實作」只在功能還不存在時才對;一旦
 land,同一個條件再出現就是**退步**,要報失敗。不翻的話,有人把新局改回舊版本,
-整段驗收只會安靜地變回「尚未實作」,exit 0。land 之後的第一個 Harness commit 就做
-這件事,並證偽一次(把功能拿掉,看它從 0/0/N 變成 0/N/0、exit 1)。
+整段驗收只會安靜地變回「尚未實作」,exit 0。**在 land 的同一次就翻**:merge 後面接一個翻閘門的 commit,
+一起 push;並證偽一次(把功能拿掉,看它從 0/0/N 變成 0/N/0、exit 1)。閘門寫成看得見的開關,翻的時候改一個字:
+資料帶版本旗標(`v: 2` 之前記 TODO)或一個 `STRICT` 常數。
+新要求加在**已經上線**的東西上時同理:先記 TODO(不讓 main 變紅),land 那一次翻嚴格。
 
 **驗收先在探針上看紅也看綠,再交出去。** 開一棵抽離的探針樹,只做最少的改動
 (例如只把新局切到新版本):每一條要紅在自己的理由上;再補一個「做對了」的探針,
@@ -381,6 +395,8 @@ land,同一個條件再出現就是**退步**,要報失敗。不翻的話,有人
 - `[shared-browser-tab]` 瀏覽器 pane 所有 agent 共用;有 peer 在跑就開專屬分頁帶 tabId,讀結果連 `location.href` 一起印
 - `[headless-min-width]` 只設 `--window-size=390` 的 headless 不是手機:視窗有最小寬度,截圖只切了左邊;手機一律用 CDP 模擬
 - `[dead-dev-server]` 伺服器是你的還不夠,要證明它還活著:切版本、移 worktree 會讓 dev server 卡死,量之前 `curl -m 5`
+- `[deploy-tree-not-test-tree]` 部署會挑檔,就對挑出來的那棵樹再查一次(相對 import 都解析得到),排在上傳之前
+- `[offscreen-transitions]` 畫面外的 iframe 不跑過渡:用 DOM 插入計時、讀樣式前 `finish()`;整套用無頭 Chrome 跑,`--user-data-dir` 要短路徑
 
 **假綠——guard 本身是死的**
 
@@ -399,6 +415,9 @@ land,同一個條件再出現就是**退步**,要報失敗。不翻的話,有人
 - `[shell-ate-the-escape]` 經 heredoc / `node -e` 產生的 guard 少了反斜線:`\b` 變 backspace,正規式一個字都抓不到;用檔案工具寫,掃控制字元
 - `[random-walk-misses-rare-state]` 隨機走的 guard 走不到罕見狀態;數那個分支被執行幾次,0 就補人為設定的局面
 - `[pinned-to-the-old-version]` 換版前先掃驗收裡寫死舊版本的常數、字樣、閘門;守一版的寫成「這版與建在它上面的」清單
+- `[todo-hides-broken]` 可選 import 只在「找不到檔」時回 null;載不起來是紅,另有一組 import 每個出貨模組
+- `[present-not-exclusive]` 比對兩邊都斷言:對的在,而且最像的錯值不在
+- `[two-tables-one-fact]` 兩張表編碼同一個事實,就逐單位互比,並規定哪一邊是真相
 
 **取樣與數字**
 
@@ -408,6 +427,8 @@ land,同一個條件再出現就是**退步**,要報失敗。不翻的話,有人
 - `[asymmetric-samples]` 比較兩個 arm 之前先把樣本數寫在同一行;鬆的那組若剛好支持你想做的,先補那一組
 - `[wrong-criterion]` 修法是「再改一個本來就好的地方」→ 懷疑判準不是資料;真規則常是連續量;背書要逐項
 - `[compare-to-the-exact-value]` 畫面上的數字跟精確值比,不跟紀錄裡已經捨過的值比——容許 0.5 會放過「捨兩次」
+- `[one-sample-per-interval]` 每區間只取中點會漏掉區間內的變化;數得完就逐單位,數不完就取每個變化點兩側
+- `[population-cannot-discriminate]` 先寫出最像的錯實作,專收兩者答案不同的案例,數量 ≥ 下限,不只非空
 
 **主張與規格——句子本身騙人**
 
@@ -418,12 +439,14 @@ land,同一個條件再出現就是**退步**,要報失敗。不翻的話,有人
 - `[size-not-hit-target]` 尺寸是元素的屬性,可及性是「加上之後畫的所有東西」;斷言中心點上最上層是不是它自己
 - `[no-scroll-not-fits]` 沒捲軸 ≠ 裝得下——被丟掉的溢出分數更好看;斷言「畫了幾個 vs 擁有幾個」;會數數的 guard 不會判斷
 - `[counts-from-their-own-line]` 從合併的測試輸出讀各段數字,要讀該段自己印的那一行,不是照順序對檔名
+- `[unchecked-brief-claim]` brief 裡關於現有程式的每一句,派工前自己跑一次、寫上數字;查不了就寫「我猜」
 
 **通道與協作**
 
 - `[dispatch-not-delivered]` `success:true` 只是位址解析;先看 `isRunning`,再去對方 transcript 搜自己的字串;確認送達前不要開始等
 - `[diagnosis-outlives-validity]` 修好機制後,把所有「因為它壞」的結論標為待重驗;「安靜」先分「壞了」還是「做完在等」
 - `[question-while-you-wait]` peer 做到一半就會提問;哨兵從派工那一刻放,只盯那張 issue 的留言,不是等它快交了
+- `[shared-append-file]` 平行往同一檔案尾巴加東西必衝突:brief 先說「兩邊都留」;全域檢查依檔案分開記 TODO
 
 ---
 
@@ -530,6 +553,9 @@ $1.86,我自己量出 $2.09,差 11%——已經準備把它當缺陷寫進 issue
    不要自己挑。
    部署跟 merge 同一條紀律:**land 哪個 SHA,就部署哪個 SHA**,從那個 SHA 的乾淨 worktree 跑(需要時先裝相依),
    不從 peer 的目錄、不從有未提交檔案的樹。部署後逐位元組比對線上檔案,比對過了才報「已部署」。
+   **測過的樹不是部署的樹。** build 會挑檔(白名單、打包、搬進 `public/`)時,上傳之前對挑出來的那棵樹
+   再查一次:每個相對 import 都解析得到(starter 的 `tools/check_public_imports.mjs`)。新增一個被 import 的
+   資料夾卻沒進白名單,線上整頁就載不起來,而所有驗收都是綠的。見 [deploy-tree-not-test-tree]。
 
 ---
 
@@ -737,7 +763,8 @@ owner 的工作樹被改掉而沒有任何通知。開之前三個前提:
 
 這是本 skill **唯一會寫進 repo** 的動作,而且只寫樣板、不 commit:
 
-1. 把 `references/starter/` 複製進去:`TEAM.md`、`tools/orch.sh`、`tools/serve.py`、`tests/harness.js`、`tests/index.html`。
+1. 把 `references/starter/` 複製進去:`TEAM.md`、`tools/orch.sh`、`tools/serve.py`、`tools/check_public_imports.mjs`、
+   `tests/harness.js`、`tests/index.html`、`tests/acc_modules.js`(把裡面的 `SHIP` 改成這個專案出貨的資料夾)。
    **已存在的檔案不覆蓋**,列出來讓 owner 決定。
 2. `.gitignore` 加 `__MARKER_ORCH.txt`、`__orch_*` 與 `.claude/worktrees/`(子 agent 的 worktree 開在那裡,§十三)(已有就不重複)。
 3. `bash tools/orch.sh` 印得出用法、`bash tools/orch.sh wt smoke HEAD && bash tools/orch.sh rm smoke` 走得通,才算裝好。
@@ -800,7 +827,9 @@ Agent({ subagent_type: "peer-fe", description: "#12 C2 landing",
 - 同一張 issue 退回兩次還沒過:先問 brief 是不是缺了什麼。brief 沒問題,才換高一級的模型重派
   (haiku → sonnet → opus → fable),並在 issue 留言寫為什麼換。
 - 驗證的判斷不外包。`orch-checker` 替你讀儀器;看畫面、讀紅的理由、決定 land 的是你。
-- 有改動的 worktree 不會自動刪:land 之後把 `.claude/worktrees/` 底下那一個清掉。
+- 有改動的 worktree 不會自動刪:land 之後把 `.claude/worktrees/` 底下那一個清掉,`orch rm` 驗證用的 `_wt/`,
+  再 `git worktree prune`。不收的話一個專案做完會留下十幾棵樹,`git worktree list` 讀不完,
+  也分不出哪一棵還有人在用。
 
 ### 判準
 
