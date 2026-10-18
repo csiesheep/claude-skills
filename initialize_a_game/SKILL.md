@@ -172,12 +172,15 @@ sit in the vault: run repo commands as `cd <repo> && …` in one call.
 1. **Placeholder (M0)**: deploy, then byte-verify the live files per
    conventions.
 2. **`/agent-team-delivery init <repo>`**: `TEAM.md`, `tools/orch.sh`,
-   `tools/serve.py`, the starter harness, `.gitignore`. If the six team
+   `tools/serve.py`, `tools/check_public_imports.mjs`, the starter harness
+   (with `tests/acc_modules.js`: set its `SHIP` folders), `.gitignore`. If the six team
    agents are not offered by the Agent tool, run
    `bash ~/.claude/skills/setup/install.sh`.
 3. **Ownership and deploy rule**: write the confirmed table and the
    confirmed deploy rule (command `npx wrangler deploy`) into `TEAM.md`
-   exactly as confirmed. A row the owner did not confirm stays out; ask
+   exactly as confirmed. If the deploy copies only part of the repo into
+   `public/`, put `node tools/check_public_imports.mjs public` in the deploy
+   script before the upload now, while the list of folders is short. A row the owner did not confirm stays out; ask
    about it.
 4. **First guard**: write the thinnest engine slice that makes the product
    verb exist (setup and the legal moves of one turn, nothing more). Group
@@ -190,6 +193,9 @@ sit in the vault: run repo commands as `cd <repo> && …` in one call.
      versions it holds for (`ON = ["v0.6", "v0.7"]`, a version and the ones
      built on it), never one literal: every version switch in president_2000
      broke tests pinned to the version before.
+   - For a seeded simulation, the same idea per behaviour: each change sits
+     behind an engine option whose old value replays it, and goldens are
+     frozen per version (conventions, Seeded replay switches).
    - Put one browser layout tool in the starter harness: headless Chrome
      over CDP with `Emulation.setDeviceMetricsOverride` at 390×664 (phone)
      and 1440×900 (desk), measuring boxes, not screenshots alone.

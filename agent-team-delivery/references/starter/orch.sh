@@ -5,15 +5,17 @@
 #   orch rm <name>                        移除 _wt/<name>（有在 serve 就先停）
 #   orch serve <name|dir>                 起 no-cache 伺服器、自己挑 port、curl 標記檔證明 origin 是你的
 #   orch stop <name|dir>                  停掉 serve 起的那一個
-#   orch falsify <file> '<sed>'           注入缺陷（sed 表達式必須含 FALSIFY）；有殘留或檔案不乾淨就拒絕
-#   orch restore                          還原上一次注入的檔案，並驗證真的乾淨
-#   orch clean                            斷言樹上沒有 FALSIFY、沒有待還原的注入（land 之前跑）
+#   orch falsify <file> '<sed>'           注入缺陷（sed 表達式必須含 FALSIFY）；有殘留或檔案不乾淨就拒絕；<file> 可以在別的工作樹
+#   orch restore [name|dir]               還原上一次注入的檔案，並驗證真的乾淨（沒給就是目前所在的工作樹）
+#   orch clean [name|dir]                 斷言樹上沒有 FALSIFY、沒有待還原的注入（land 之前跑）
 #
-# Windows Git Bash 為主；需要 python、curl、netstat、taskkill。
+# Windows Git Bash 為主；需要 python（或 py 啟動器）、curl、netstat、taskkill。
 # 2026-09-07 在一個丟棄用的 repo 上走過全部七個子命令（Windows 11 / Git Bash / python 3.10）：
 #   wt 兩種模式、重複開拒絕、serve 背景行程活過工具呼叫、重複 serve 拒絕、falsify 四種拒絕、
 #   restore 後 clean 綠、stop 用 netstat 抓到 pid、rm。stop 之後 curl 可能是 timeout 不是 refused。
 set -u
+# Windows 上的 python 可能是 Microsoft Store 的空殼（印 "Python was not found"）：退回 py 啟動器
+if python -c "import sys" >/dev/null 2>&1; then PY=python; elif command -v py >/dev/null 2>&1; then PY="py -3"; else PY=python; fi
 # autocrlf 的「LF will be replaced by CRLF」警告會蓋掉 falsify 印的 diff——關掉
 export GIT_CONFIG_PARAMETERS="'core.safecrlf=false'"
 
@@ -25,8 +27,8 @@ MAIN="$(cd "$COMMON/.." && pwd)"
 WT_BASE="${ORCH_WT_BASE:-$(dirname "$MAIN")/_wt}"
 MARKER='__MARKER_ORCH.txt'
 STATE='__orch_falsify.state'
-# 這兩個檔案本身就含 FALSIFY 字樣，掃描時排除
-SELF_EXCLUDE=(':!tools/orch.sh' ':!TEAM.md')
+# 這些檔案本身就含 FALSIFY 字樣（工具、規矩、寫證偽紀錄的設計文件），掃描時排除
+SELF_EXCLUDE=(':!tools/orch.sh' ':!TEAM.md' ':!docs/*.md')
 
 resolve_dir(){   # name 或路徑 → 絕對路徑
   local x="$1"
@@ -34,8 +36,9 @@ resolve_dir(){   # name 或路徑 → 絕對路徑
   elif [ -d "$WT_BASE/$x" ]; then (cd "$WT_BASE/$x" && pwd)
   else die "找不到工作樹：$x（也不是 $WT_BASE/$x）"; fi
 }
-write_marker(){  # <dir> <name>
-  printf '%s %s\n' "$2" "$(git -C "$1" rev-parse --short HEAD)" > "$1/$MARKER"
+write_marker(){  # <dir> <name>：名字 + 現在的 HEAD；追蹤中的檔有改動就加 +dirty
+  local d=""; git -C "$1" diff --quiet HEAD -- 2>/dev/null || d="+dirty"
+  printf '%s %s%s\n' "$2" "$(git -C "$1" rev-parse --short HEAD)" "$d" > "$1/$MARKER"
 }
 
 # ---------------------------------------------------------------- wt / rm
@@ -68,16 +71,18 @@ cmd_rm(){
 }
 
 # ---------------------------------------------------------------- serve / stop
-free_port(){ python -c "import socket;s=socket.socket();s.bind(('127.0.0.1',0));print(s.getsockname()[1])"; }
+free_port(){ $PY -c "import socket;s=socket.socket();s.bind(('127.0.0.1',0));print(s.getsockname()[1])"; }
 
 cmd_serve(){
   local dir; dir="$(resolve_dir "${1:-.}")" || exit 1
   local name; name="$(basename "$dir")"
   [ -f "$dir/__orch_serve.port" ] && die "$name 已經在 serve（port $(cat "$dir/__orch_serve.port")）；先 orch stop $name"
-  [ -f "$dir/$MARKER" ] || write_marker "$dir" "$name"
+  # 每次 serve 都重寫：worktree 開出來之後 merge、commit 過，舊標記印的是「開的時候」那個 SHA，
+  # 你會以為在驗 A、其實在驗 B（china_life #60：標記寫 ff68b62，樹已經是 merge 後的樹）
+  write_marker "$dir" "$name"
   local want; want="$(cat "$dir/$MARKER")"
   local port; port="$(free_port)"
-  python "$dir/tools/serve.py" "$port" "$dir" > "$dir/__orch_serve.log" 2>&1 &
+  $PY "$dir/tools/serve.py" "$port" "$dir" > "$dir/__orch_serve.log" 2>&1 &
   echo "$port" > "$dir/__orch_serve.port"
   # 起完自己 curl：對得上 name + SHA 才是你的 origin（port 是共用資源，背景失敗你不會立刻看到）
   local got; got="$(curl -s --retry 10 --retry-delay 1 --retry-connrefused "http://127.0.0.1:$port/$MARKER")"
@@ -106,13 +111,18 @@ cmd_falsify(){
   [ -n "$file" ] && [ -n "$expr" ] || die "用法：orch falsify <file> '<sed 表達式，含 FALSIFY>'"
   case "$expr" in *FALSIFY*) ;; *) die "sed 表達式要含 FALSIFY 字樣，restore / clean 才認得出來";; esac
   [ -f "$file" ] || die "找不到 $file"
+  # 先轉成絕對路徑：下面的 git -C <dir> 會把相對路徑當成相對 <dir>；從別的工作樹叫進來時
+  # git diff 回 128（路徑在 repo 外），舊版把它誤報成「有未提交的改動」（china_life #57）
+  file="$(cd "$(dirname "$file")" && pwd)/$(basename "$file")"
   local dir; dir="$(git -C "$(dirname "$file")" rev-parse --show-toplevel)" || die "$file 不在 repo 裡"
   # 前置檢查：上一次的殘留、或檔案本來就不乾淨，都不是這一次該處理的
   [ -f "$dir/$STATE" ] && die "上一次注入還沒 restore（$(cat "$dir/$STATE")）"
   if git -C "$dir" grep -q FALSIFY -- ':/' "${SELF_EXCLUDE[@]}" 2>/dev/null; then
     die "樹上已有 FALSIFY：$(git -C "$dir" grep -l FALSIFY -- ':/' "${SELF_EXCLUDE[@]}" | tr '\n' ' ')"
   fi
-  git -C "$dir" diff --quiet -- "$file" || die "$file 有未提交的改動，不能拿來注缺陷"
+  local rc=0; git -C "$dir" diff --quiet -- "$file" || rc=$?
+  [ "$rc" = 1 ] && die "$file 有未提交的改動，不能拿來注缺陷"
+  [ "$rc" -gt 1 ] && die "git diff 讀不了 $file（exit $rc）：它在 $dir 裡嗎？"
   sed -i "$expr" "$file" || die "sed 失敗"
   # 沒改到任何東西的注入，會通過所有測試——因為它什麼都沒做
   if git -C "$dir" diff --quiet -- "$file"; then die "sed 沒改到任何東西（pattern 沒命中）"; fi
@@ -122,8 +132,12 @@ cmd_falsify(){
   echo "（跑完驗證後：orch restore）"
 }
 
+here_or(){  # [name|dir] → 那個工作樹；沒給就是目前所在的 repo
+  if [ -n "${1:-}" ]; then resolve_dir "$1"; else git rev-parse --show-toplevel 2>/dev/null || die "不在 repo 裡"; fi
+}
+
 cmd_restore(){
-  local dir; dir="$(git rev-parse --show-toplevel 2>/dev/null)" || die "不在 repo 裡"
+  local dir; dir="$(here_or "${1:-}")" || exit 1
   [ -f "$dir/$STATE" ] || die "沒有待還原的注入"
   local file; file="$(cat "$dir/$STATE")"
   git -C "$dir" checkout -- "$file" || die "checkout 失敗"
@@ -135,7 +149,7 @@ cmd_restore(){
 }
 
 cmd_clean(){
-  local dir; dir="$(git rev-parse --show-toplevel 2>/dev/null)" || die "不在 repo 裡"
+  local dir; dir="$(here_or "${1:-}")" || exit 1
   local bad=0
   [ -f "$dir/$STATE" ] && { echo "clean: 有未還原的注入：$(cat "$dir/$STATE")"; bad=1; }
   if git -C "$dir" grep -q FALSIFY -- ':/' "${SELF_EXCLUDE[@]}" 2>/dev/null; then

@@ -38,6 +38,17 @@ unless the owner says otherwise.
   list of strings only an older version shows (never deleted or changed by
   a later version) and, per version switch, a check that no other string
   uses the words that version took out.
+- **Seeded replay switches** (china_life, a seeded life simulator): every
+  behaviour change goes behind an engine option whose old value replays the
+  previous behaviour (`mortality: 'v1'`, `decisionEffects: 'off'`). Golden
+  files are frozen per version (`pre_v7.json` with `generated_from` = the
+  SHA) and the tests read the newest one, with a TODO until the
+  orchestrator freezes the next. A new product rule that would move many
+  seeds can be opt-in at the engine and passed by the page on every call
+  (`birthCap: 1940`), so no golden has to be refrozen. A redraw uses its
+  own RNG stream, never the main one, so a seed that is not redrawn stays
+  identical and shared replay links keep working; the test for that
+  compares the redrawn lives, because the untouched ones cannot tell.
 - Text lands and deploys before the code that uses it: a changed string
   may only use the `{placeholders}` it already had, or the live page shows
   a raw `{luck}` until the code lands.
@@ -69,6 +80,12 @@ unless the owner says otherwise.
   One differing file right after a deploy is usually the edge: run the
   whole compare again and compare the files the land changed on their own
   before calling it a defect (president_2000 #58: 125/1, then 126/0).
+- The tested tree is not the deployed tree. If the deploy copies a subset
+  into `public/` (a build script with a folder whitelist, a bundler), run
+  `node tools/check_public_imports.mjs public` before the upload: every
+  relative import in the uploaded tree must resolve. (china_life: a new
+  `data/geo/` was imported by the map but missing from the whitelist; the
+  live page loaded no modules while every test was green.)
 - `wrangler dev` serving a tree you check other commits out in, or one next
   to worktrees you remove, can fail with "Could not resolve …" and then
   hang without answering. `curl -s -m 5` the page before any measurement;
@@ -103,6 +120,19 @@ unless the owner says otherwise.
   behind: stop it by PID (its command line carries the profile name).
   Never the owner's Chrome, never the desktop app's browser pane (shared
   tabs, a tab cap).
+- Give headless Chrome a short `--user-data-dir` (for example
+  `%TEMP%\cp_<port>`). With a long profile path it starts without opening
+  its debug port and says nothing; the script just times out.
+- Run the browser test suite in headless Chrome, not in the desktop app's
+  pane: a hidden pane throttles timers. An offscreen iframe does not
+  advance CSS transitions either, so time steps by DOM insertion, and call
+  `getAnimations().forEach(a => a.finish())` (one try per animation;
+  infinite ones throw) before reading a computed colour or opacity. Read
+  the result from the harness's own state (`import('/tests/harness.js')`
+  → `R`) after it finishes, instead of waiting for a summary line.
+- The owner often reviews on a phone, where widgets drawn in the chat do
+  not show. Send screenshots and mockups as image files; for a live page,
+  take them from the deployed origin with the phone size above.
 - Phone targets: 390×664, an iPhone 14/15 in Safari with its toolbars, is
   the scored size; print 375×548 (iPhone SE in Safari) as a reading; taps
   at least 44 px.
