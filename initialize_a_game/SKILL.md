@@ -196,6 +196,15 @@ sit in the vault: run repo commands as `cd <repo> && …` in one call.
    - For a seeded simulation, the same idea per behaviour: each change sits
      behind an engine option whose old value replays it, and goldens are
      frozen per version (conventions, Seeded replay switches).
+   - Every replay or share link carries that engine version from the first
+     release (`?seed=…&cv=v1`, and the server's short-link redirect adds it
+     from the stored record); a link without it means the version that was
+     live when links first shipped. Before each version bump, freeze the old
+     version's outputs into a golden file so "old version unchanged" checks
+     compare against it, not against the new code run with the old flag.
+     In china_life a share link without the full replay parameters opened
+     a different life for every player who scanned it, and only the owner's
+     own phone scan caught it.
    - Put one browser layout tool in the starter harness: headless Chrome
      over CDP with `Emulation.setDeviceMetricsOverride` at 390×664 (phone)
      and 1440×900 (desk), measuring boxes, not screenshots alone.
