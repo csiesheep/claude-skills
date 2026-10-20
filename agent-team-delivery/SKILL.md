@@ -397,6 +397,7 @@ land,同一個條件再出現就是**退步**,要報失敗。不翻的話,有人
 - `[dead-dev-server]` 伺服器是你的還不夠,要證明它還活著:切版本、移 worktree 會讓 dev server 卡死,量之前 `curl -m 5`
 - `[deploy-tree-not-test-tree]` 部署會挑檔,就對挑出來的那棵樹再查一次(相對 import 都解析得到),排在上傳之前
 - `[offscreen-transitions]` 畫面外的 iframe 不跑過渡:用 DOM 插入計時、讀樣式前 `finish()`;整套用無頭 Chrome 跑,`--user-data-dir` 要短路徑
+- `[harness-only-stall]` 只在 harness 裡卡:全新 profile 直接開頁 N ≥ 50 次重現;外面 0 次歸儀器,外面也卡才是產品
 
 **假綠——guard 本身是死的**
 
@@ -414,9 +415,12 @@ land,同一個條件再出現就是**退步**,要報失敗。不翻的話,有人
 - `[vacuous-consistency]` 「A 跟 B 一致」在兩邊都空時恆真——A 先對獨立來源的絕對值;認本尊別用被檢查的欄位
 - `[shell-ate-the-escape]` 經 heredoc / `node -e` 產生的 guard 少了反斜線:`\b` 變 backspace,正規式一個字都抓不到;用檔案工具寫,掃控制字元
 - `[random-walk-misses-rare-state]` 隨機走的 guard 走不到罕見狀態;數那個分支被執行幾次,0 就補人為設定的局面
-- `[pinned-to-the-old-version]` 換版前先掃驗收裡寫死舊版本的常數、字樣、閘門;守一版的寫成「這版與建在它上面的」清單
+- `[pinned-to-the-old-version]` 換版前先掃驗收裡寫死舊版本的常數、字樣、閘門;閘門寫成比大小(`>= v7`),清單也會漏下一版
 - `[todo-hides-broken]` 可選 import 只在「找不到檔」時回 null;載不起來是紅,另有一組 import 每個出貨模組
 - `[present-not-exclusive]` 比對兩邊都斷言:對的在,而且最像的錯值不在
+- `[hook-reports-intent]` 鉤子要記實際傳給繪製函式的值,guard 對成品取樣(獨立重算、逐格比);證偽改繪製的輸入
+- `[compare-against-frozen]` 「舊版不變」對換版前凍結的 golden 比,不拿新舊兩版互比;凍結在 peer 開工前
+- `[guard-shapes-product]` 分類器太寬時 peer 會改產品迎合;brief 寫「分錯回報改表」,交付列出為 guard 做的改動
 - `[two-tables-one-fact]` 兩張表編碼同一個事實,就逐單位互比,並規定哪一邊是真相
 
 **取樣與數字**
@@ -425,6 +429,8 @@ land,同一個條件再出現就是**退步**,要報失敗。不翻的話,有人
 - `[initial-state-sample]` 取樣清單要有預設值 / 初始值 / 空的 / 第一次執行——權重最高的點不在等距序列裡
 - `[grid-count-not-absolute]` 取樣網格數出來的計數,報出去換成比例或把網格寫在同一句;粗網格的 0 不是「不存在」
 - `[asymmetric-samples]` 比較兩個 arm 之前先把樣本數寫在同一行;鬆的那組若剛好支持你想做的,先補那一組
+- `[expected-count-sample]` 罕見事件的頻率按期望次數補樣本(≥ 100 次),補不到就紅「樣本不足」
+- `[mixed-population-comparison]` 兩組比較先寫組成:同層裡比再加權,分母只放規則作用得到的人
 - `[wrong-criterion]` 修法是「再改一個本來就好的地方」→ 懷疑判準不是資料;真規則常是連續量;背書要逐項
 - `[compare-to-the-exact-value]` 畫面上的數字跟精確值比,不跟紀錄裡已經捨過的值比——容許 0.5 會放過「捨兩次」
 - `[one-sample-per-interval]` 每區間只取中點會漏掉區間內的變化;數得完就逐單位,數不完就取每個變化點兩側
@@ -494,6 +500,14 @@ $1.86,我自己量出 $2.09,差 11%——已經準備把它當缺陷寫進 issue
 
    這是 [report-is-a-reading](「peer 的回報是一次讀數,不是樹的屬性」)套用在**自己的 git 操作**
    上:分支名也是一次讀數。**merge 的時候貼那個 SHA。**
+1c. **幾個 peer 互相 merge 過的分支,一起 land 時逐個主人比檔。** peer B 為了接 A 的
+   函式 merge 了 A 的分支;之後 A rebase、force push 了新版。三支一起合進 land 樹時,
+   B 的分支帶著 A 的**舊版**,衝突(或更糟,自動合併成新舊混合)出在 A 的檔上。
+   解法:衝突一律取那個檔的主人最新交付的版本,然後**對每個主人**跑
+   `git diff --stat <他交付的 SHA> HEAD -- <他的檔>`,每一份都要是空的才往下走。
+   brief 也先講好:接別人的分支時,對方 force push 後要重新 merge。
+   出處:china_life #113／#116／#117(engine/life.js)
+
 2. Merge 後確認**父節點是預期的兩個**,以及 merge 的結果樹沒有多出東西:
    ```bash
    git log --format="%H %P" -1 <merge>
