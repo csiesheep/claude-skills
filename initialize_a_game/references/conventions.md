@@ -13,9 +13,16 @@ unless the owner says otherwise.
 - `src/index.js` is a **path-prefix router**: `PREFIX = "/<slug>"`;
   bare prefix 301s to the trailing-slash form; `/<slug>/ws` upgrades to
   the room Durable Object; `/<slug>/sitemap.xml` is prefix-scoped; other
-  paths strip the prefix and go to `env.ASSETS` with `run_worker_first`.
-  Same-origin redirects from the asset handler must get the prefix put
-  back (see tiandihui `src/index.js`).
+  paths go to `env.ASSETS`.
+- **Static files must not run the Worker.** With `run_worker_first: true`
+  every JS module, image and sound is a billed Worker request (free plan:
+  100 000 a day, then 429 instead of the page). Build the site into
+  `public/<slug>/` so asset paths equal URLs, and list only what needs code
+  in `run_worker_first`: `["/<slug>", "/<slug>/api/*", "/<slug>/r/*", "/<slug>/ws"]`.
+  A miss still falls back to the Worker. china_life: one visit plus two lives
+  went from 204 Worker requests to 6 (all API). Older repos (tiandihui)
+  strip the prefix in the Worker and must put it back on same-origin
+  redirects; new repos should not need that.
 - **Static assets** in `public/`; `src/` is bundled. Query-string routes
   (`?play`, `?room=ABCD`, `?lang=`) so one build works at any prefix.
 - **Rooms** are one Durable Object per room, named by a 4-letter code
@@ -56,6 +63,17 @@ unless the owner says otherwise.
   they are versioned; if not, a version switch shows games saved on the
   old version the new wording (president_2000 accepted that).
 - Fonts from Google Fonts only; the hub loads only faces a tile uses.
+- **Analytics**: one GA4 property for the whole hostname (`G-Q4VS3P3T58`,
+  property "games.csiesheep.com"; the blog csiesheep.com is a different
+  property). Load gtag after `load`, consent default denied in EEA/UK/CH.
+  **`?internal=1`** marks the tab internal in `sessionStorage`
+  (`<slug>.internal=1`; `?internal=0` clears it): no gtag, no GA events,
+  no telemetry POST (a game's own stats endpoint), on every page of the
+  game. Every live check, probe and headless playthrough carries it. The
+  acceptance pair: an internal visit loads no gtag and records no upload,
+  and a control visit without it does record one (so the measure is
+  alive; dedupe of already-reported lives can hide it — clear local
+  records first).
 
 ## Repo
 
@@ -86,6 +104,20 @@ unless the owner says otherwise.
   relative import in the uploaded tree must resolve. (china_life: a new
   `data/geo/` was imported by the map but missing from the whitelist; the
   live page loaded no modules while every test was green.)
+- **Bundle at deploy time, not in the repo.** A module-per-file game sends
+  one request per module (china_life: 86 JS files, 91 requests per visit).
+  The build runs esbuild over the HTML entry points in `public/` with code
+  splitting and hashed names, rewrites the script tags, deletes the
+  bundled sources, and writes `public/_headers` (the assets root, not
+  `public/<slug>/`) with `Cache-Control: public, max-age=31536000,
+  immutable` for the hashed folder. Keep splitting: one bundle would make
+  the landing page download the whole game. Tests keep running on the
+  unbundled repo, so a smoke test of the built `public/` under
+  `wrangler dev` is the acceptance (first-visit requests, second visit
+  serves the first visit's JS from cache, one full playthrough, each page
+  finishes drawing — a title check alone misses a broken module graph).
+  Read cache hits from `Network.requestServedFromCache`, and reload the
+  same URL for the second visit.
 - `wrangler dev` serving a tree you check other commits out in, or one next
   to worktrees you remove, can fail with "Could not resolve …" and then
   hang without answering. `curl -s -m 5` the page before any measurement;
@@ -157,7 +189,12 @@ unless the owner says otherwise.
   has inner pages, the tile's fonts in the hub font link. Never list a
   page in the sitemap while it is still `noindex`.
 - Search Console submission is the owner's manual step. AdSense is a
-  separate decision.
+  separate decision, and it is judged on the **root domain**: AdSense
+  sites are root domains only, so games.csiesheep.com rides on the review
+  of csiesheep.com (the WordPress blog). The blog was refused for "low
+  value content" in 2026-10; game pages cannot fix that (plan:
+  `obsidian/Projects/blog improvement.md`). H5 Games Ads needs an approved
+  account and site first, then its own application form.
 - In the same change that drops `noindex`, switch the deploy rule in
   `TEAM.md` to "only on the owner's go": from then on a land is not a ship.
 
