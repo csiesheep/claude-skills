@@ -205,6 +205,14 @@ sit in the vault: run repo commands as `cd <repo> && …` in one call.
      In china_life a share link without the full replay parameters opened
      a different life for every player who scanned it, and only the owner's
      own phone scan caught it.
+   - Ship an **internal-visit flag** with the first page that loads analytics
+     or reports anything to a server: `?internal=1` marks the tab internal
+     (`sessionStorage`), skips the analytics loader and every telemetry
+     call, `?internal=0` clears it (conventions, Analytics). Write it into
+     `TEAM.md`'s deploy section that every check of the live site carries
+     it. china_life added it only after half of GA's "users" and part of
+     the public life statistics turned out to be the orchestrator's own
+     headless checks.
    - Put one browser layout tool in the starter harness: headless Chrome
      over CDP with `Emulation.setDeviceMetricsOverride` at 390×664 (phone)
      and 1440×900 (desk), measuring boxes, not screenshots alone.

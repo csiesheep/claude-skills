@@ -452,6 +452,9 @@ land,同一個條件再出現就是**退步**,要報失敗。不翻的話,有人
 - `[dispatch-not-delivered]` `success:true` 只是位址解析;先看 `isRunning`,再去對方 transcript 搜自己的字串;確認送達前不要開始等
 - `[diagnosis-outlives-validity]` 修好機制後,把所有「因為它壞」的結論標為待重驗;「安靜」先分「壞了」還是「做完在等」
 - `[question-while-you-wait]` peer 做到一半就會提問;哨兵從派工那一刻放,只盯那張 issue 的留言,不是等它快交了
+- `[checks-pollute-metrics]` 你的線上檢查算進了真實玩家:產品給 `internal=1`(不載 analytics、不上報),一切線上檢查都帶;配一個對照證明量得到
+- `[rewritten-delivered-branch]` 交付後 rebase／force push,land 樹裡同一改動變兩份:交付後只加 commit、用 merge 貼近 main
+- `[conflict-in-generated-file]` 產生檔衝突不手解:取一邊、重跑產生器、`--check`;跑測試前先確認沒有衝突標記
 - `[shared-append-file]` 平行往同一檔案尾巴加東西必衝突:brief 先說「兩邊都留」;全域檢查依檔案分開記 TODO
 
 ---
@@ -507,6 +510,12 @@ $1.86,我自己量出 $2.09,差 11%——已經準備把它當缺陷寫進 issue
    `git diff --stat <他交付的 SHA> HEAD -- <他的檔>`,每一份都要是空的才往下走。
    brief 也先講好:接別人的分支時,對方 force push 後要重新 merge。
    出處:china_life #113／#116／#117(engine/life.js)
+1d. **交付後的分支不准改寫歷史。** land 樹常常已經合過 peer 的舊 SHA;peer 之後 rebase／force push
+   一次,同一份改動就變成兩組 commit,下一次合併在它自己的檔上衝突。brief 寫死:「交付後要修,
+   在原分支上加 commit、一般 push;要貼近 main 用 merge,不要 rebase」(`[rewritten-delivered-branch]`)。
+   產生檔(`data/build/*`、打包輸出)衝突時不手解:取任一邊,重跑產生器,再跑它的 `--check`
+   (`[conflict-in-generated-file]`)。**解完衝突、跑任何測試之前**,先 `git diff --name-only --diff-filter=U`
+   與 `grep -c '^<<<<<<<'`——在帶衝突標記的樹上跑出來的紅綠都不算數。
 
 2. Merge 後確認**父節點是預期的兩個**,以及 merge 的結果樹沒有多出東西:
    ```bash
