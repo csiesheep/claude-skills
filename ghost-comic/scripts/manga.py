@@ -1696,7 +1696,7 @@ def _serif(size: int) -> ImageFont.FreeTypeFont:
 
 
 def brand_cover(b: dict, ch: dict, w: int, h: int, panel: str | None, br: dict, number: int | None,
-                seal: Image.Image | None) -> Image.Image:
+                seal: Image.Image | None, title: bool = True) -> Image.Image:
     """Slide 1: the picked panel framed on the paper colour, the vertical title at its top right, and a strip under
     it with the brand's `cover_strip` line (「鬼唱詩｜第 N 首」), the disclosure and the seal. The same frame for every
     comic, so the profile grid reads as one shelf."""
@@ -1716,7 +1716,8 @@ def brand_cover(b: dict, ch: dict, w: int, h: int, panel: str | None, br: dict, 
     im.paste(pic, box[:2])
     d = ImageDraw.Draw(im)
     d.rectangle([box[0] - 1, box[1] - 1, box[2], box[3]], outline=c["ink"], width=5)
-    draw_entry(im, {"kind": "title", "text": board_title(b), "pos": "tr", "scale": 1.3}, box, round(w / 40))
+    if title:   # --no-cover-title: a panel whose figure fills the top right (〈東河河口的鈴鐺〉 p2)
+        draw_entry(im, {"kind": "title", "text": board_title(b), "pos": "tr", "scale": 1.3}, box, round(w / 40))
     top = box[3] + round(strip * 0.22)
     line = brand_text(br.get("cover_strip", "{name}｜{number}"), br, number) if number else br.get("name", "")
     big = _serif(round(w / 23))
@@ -1790,7 +1791,7 @@ def cmd_export(a) -> None:
     first = None
     for k, part in enumerate(parts, 1):
         tag = f"part{k}_" if len(parts) > 1 else ""
-        first = brand_cover(b, ch, w, h, a.cover, br, a.number, solid) if br else ig_cover(b, ch, w, h, a.cover)
+        first = brand_cover(b, ch, w, h, a.cover, br, a.number, solid, not a.no_cover_title) if br else ig_cover(b, ch, w, h, a.cover)
         slides = [first] + [fit_on(Image.open(p), w, h, ground) for p in part]
         if k == len(parts):
             slides.append(brand_end(w, h, br, handle, outline) if br else ig_end(b, w, h, handle))
@@ -2379,6 +2380,8 @@ def main() -> None:
     ex = sub.add_parser("export")
     ex.add_argument("--ratio", choices=sorted(IG_SIZES), default="3:4")
     ex.add_argument("--cover", default=None, help="panel id for slide 1 (default: page 1 as it is)")
+    ex.add_argument("--no-cover-title", action="store_true",
+                    help="brand cover without the vertical title (it is in every caption and the Threads heading)")
     ex.add_argument("--handle", default=None, help="account name for the end card (default: the brand file's)")
     ex.add_argument("--tags", default=None, help="comma-separated hashtags for the caption (default: the brand file's)")
     ex.add_argument("--threads-panel", default=None,
