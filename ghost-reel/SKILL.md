@@ -37,8 +37,11 @@ Scripts are in `<skill dir>/scripts/`; run them with `py -X utf8`. ghost-comic m
 engine draws panels with its `manga.py`).
 
 1. **Draft the shot list.** `draft.py <story>` writes `reels/shots.json` from the board: cold open on the hook
-   panel before the reveal, title card, every lettered panel in reading order trimmed to about 85 s, the reveal
-   (black, stinger, shake, music ducked) and the ending (darken, riser, stinger). It refuses to overwrite an existing
+   panel before the reveal with tape noise (`vhs`), no title card, every lettered panel in reading order trimmed to
+   about 85 s, the reveal (0.3 s of black before it, stinger, shake, `negflash`, `static`, music ducked) and the ending
+   (darken, `vhs`, riser, stinger); a `"mono": true` board gives `"mono": true` and no "night" tint (〈帶國中遊學團去
+   日本〉: "night" on an already-black panel left a shot almost pure black). The draft still knows nothing of the
+   story's own jump scare, the character animation or the ghost close-ups: those are step 2–3 work. It refuses to overwrite an existing
    shot list (`--force` to start over) and refuses a board with no reveal mark.
 2. **Edit it as a director, with the story open.** The draft knows panels, not the story. On 〈阿嬤說我後面跟了三個人〉
    it kept every speech panel and dropped the narration that carries the plot (the three patients who died on her
@@ -53,11 +56,28 @@ engine draws panels with its `manga.py`).
      that turn, then the title with 「（下）」.
    - subtitles in the story's words (the engine wraps at about 14 characters a line, two lines), spoken lines in
      「」; no subtitle where the picture says it.
-   - the cold open: the strangest moment of the first half, on a **moving** shot (an H3 clip), with a two-beat hook
+   - **the opening is an 8-second hook block (A/B tested, 第 6 首, 2026-10-24; the owner: 「A is better」).** The
+     analytics on v4 showed a 3-second view rate of about 24% and retention falling from 23% to 13% by 4 s: the
+     cold open was a dark grey picture under tape noise with a vague line (「那趟日本，有個小孩」), and at 3.2 s it cut
+     to a calm daytime shrine. Version A won against B (a phone ringing, then a question 「在日本拿了地藏前的石頭，
+     你知道怎麼還嗎？」). Build every opening like A, then the comic's setup in order, untouched:
+     1. 0–0.5 s: the scariest ghost image as a flash (a video-only ghost close-up clip, bright and high-contrast,
+        `static` + `negflash`, a stinger). The first frame must read on a phone at a glance; never a dark mush.
+     2. 0.5–3.5 s: the strange, concrete thing with a sound (the phone ringing, `ring`), its words in big centred
+        text (`"voice": true`): 「來電顯示：612」. A fact, not a mood.
+     3. 3.5–6 s: the narrator's reaction (a character-animation clip: frozen, sweating) with the line that turns the
+        fact into a threat: 「那是我的房間。」
+     4. 6–8 s: one line that points back to the start: 「事情要從那顆石頭說起。」 over the object.
+     The cold-open picture the old way used (the ghost rummaging) moves to where it belongs in the story. A question
+     to the viewer ("你知道怎麼……嗎？") lost: state the strange fact instead. `ring` is a synthesised old desk-phone
+     bell in sfx.py. Render alternatives as `"cuts"` in shots.json (`make.py --cut hookA`) and give the owner the
+     720p files to post as Instagram trial Reels from the phone (trial Reels cannot be set on the web); compare the
+     3-s view rate and the 4-s and 10-s retention after 48 hours.
+   - (older) the cold open: the strangest moment of the first half, on a **moving** shot (an H3 clip), with a two-beat hook
      line in 「／」 that states the wrongness (第 6 首: 「凌晨3點，我在自拍。／但那時候，我睡著了。」). Never the reveal.
      A still face with a line that only makes sense later (「等一下，還沒好。」) scored 6/10 with an independent
      short-video editor; the moving hook scored 7.
-   - **the title card costs viewers.** The draft puts a 2-s title card after the cold open; on a black ground it is the
+   - **the title card costs viewers.** The draft used to put a 2-s title card after the cold open (it no longer does); on a black ground it was the
      likeliest swipe point (qc flags "black 2.2s at 3.0s"). Drop it (the title is in the caption and the cover), or give
      the TITLE shot a `"clip"` so the title sits over moving footage.
    - for a one-turn story aim for 80 to 90 s with the reveal by about 60% (第 6 首: 0:52 of 1:26); a first cut that
@@ -71,6 +91,12 @@ engine draws panels with its `manga.py`).
      `focus` on him so the ghost is still out of frame, heartbeat that stops before the cut; shot B is `snap` with
      `focus` on the ghost, `"sub": ""`, `shake`, the stinger alone (no whoosh ahead of it), about 1.8 s, then
      `black` 0.5. A cold open that already shows the ghost is fine if the jump-scare shot shows it closer and new.
+   - **What the owner signed off on (第 6 首〈帶國中遊學團去日本〉, 2026-10-23, 「可以」, posted as v4):** a 92-s cut
+     that kept the comic's setup, 12 moving shots (5 scene clips, 7 character animations), a two-shot jump scare with
+     a 0.8-s ghost-face hit after it, a 1.6-s staring ghost face after the last line, `vhs` on the cold open and the
+     ending, `flicker2` on the phone and the empty room. Four versions went out for comparison (v1 editor 6.5 →
+     v2 two-shot scare → v3 character animation → v4 scarier ghost); the owner asked for v3 and v4 themselves, which
+     is the order to try next time: animate the people, then make the ghost frightening, then polish.
    - **make the ghost frightening, not just present** (owner, 2026-10-23: 「鬼加強特效 jump scare or 雜訊不好之類的，目前鬼的
      形象太不嚇人」). The comic's ghost (hair over the face, a wet dress) read as sad, not scary. Two fixes, both in
      〈帶國中遊學團去日本〉 v4: (1) draw one or two extra horror close-ups of the ghost's face for the video only, in a
@@ -165,7 +191,8 @@ engine draws panels with its `manga.py`).
 
 - Panels upscaled 2× and sharpened; screen and phone lettering drawn back into the picture.
 - Sounds a shot can name (`make.py --check` refuses others): stinger (the jumpscare sample), riser, whoosh, ping,
-  whisper, heartbeat, drone, wind, insects, rustle, zipper, footsteps, page, pop.
+  ring (an old desk phone's bell, synthesised), whisper, heartbeat, drone, wind, insects, rustle, zipper, footsteps,
+  page, pop.
 - Subtitles: white with a 7-px black stroke on a dark strip, fading in within 0.3 s (the first version's grey,
   3-px text was unreadable on light panels and still faint at the 1.5-s frame samples).
 - Camera: push, pull, pan_rtl, pan_down, static, snap. Effects: night tint, pulse (heartbeat vignette), chroma,

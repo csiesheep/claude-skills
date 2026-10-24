@@ -121,6 +121,16 @@ def ping():
     return x * np.exp(-((t % 0.14) / 0.08)) * 0.35
 
 
+def ring(d=None):
+    """An old desk phone's bell: a hammer striking two bells about 20 times a second for 1.6 s, then a short tail."""
+    ln = secs(2.0); t = np.arange(ln) / SR
+    tone = sum(a * np.sin(2 * math.pi * f * t) for f, a in ((980, 1.0), (1240, 0.8), (2650, 0.35), (3410, 0.2)))
+    strike = (np.sin(2 * math.pi * 20 * t) > 0).astype(float)
+    env = np.convolve(strike, np.exp(-np.arange(secs(0.03)) / secs(0.012)), mode="same")
+    gate = (t < 1.6) + (t >= 1.6) * np.exp(-(t - 1.6) / 0.12)
+    return norm(tone * env * gate, 0.55)
+
+
 def zipper(d=0.7):
     n = secs(d); x = np.zeros(n)
     for i in range(int(d * 60)):
@@ -150,7 +160,7 @@ def silence(d):
 LIB = {"drone": drone, "wind": wind, "insects": insects, "rustle": rustle, "heartbeat": heartbeat,
        "stinger": lambda d=None: stinger(), "riser": riser, "whoosh": lambda d=None: whoosh(),
        "pop": lambda d=None: pop(), "ping": lambda d=None: ping(), "zipper": lambda d=None: zipper(),
-       "whisper": lambda d=None: whisper()}
+       "whisper": lambda d=None: whisper(), "ring": lambda d=None: ring()}
 BEDS = {"drone", "wind", "insects", "rustle", "heartbeat"}
 
 
